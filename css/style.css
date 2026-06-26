@@ -1,32 +1,53 @@
 :root {
   --bg: #1b3a2f;
   --bg-2: #14272010;
-  --felt: #35654d;
-  --felt-dark: #244738;
-  --panel: #20303a;
-  --panel-light: #2c4250;
-  --gold: #ffd54a;
-  --red: #e44b4b;
-  --blue: #4aa3e4;
-  --chip: #4aa3e4;
-  --mult: #e44b4b;
-  --text: #f4f6f5;
-  --muted: #9bb0a8;
-  --card-bg: #fbfaf5;
-  --shadow: 0 6px 14px rgba(0, 0, 0, .35);
+  --felt: #3a6e54;
+  --felt-dark: #1f4234;
+  --panel: #1e2e38;
+  --panel-light: #2e4656;
+  --gold: #ffd866;
+  --gold-deep: #e0a82a;
+  --red: #ef5a5a;
+  --blue: #58adf0;
+  --chip: #58adf0;
+  --mult: #ef5a5a;
+  --text: #f6f8f7;
+  --muted: #a6bcb3;
+  --card-bg: #fcfbf6;
+  /* 更有层次的多层阴影 */
+  --shadow: 0 4px 8px rgba(0,0,0,.28), 0 10px 24px rgba(0,0,0,.32);
+  --shadow-lg: 0 8px 16px rgba(0,0,0,.34), 0 20px 48px rgba(0,0,0,.4);
+  --ring-gold: 0 0 0 1px #ffffff18, 0 0 18px #ffd86655;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
-  background: radial-gradient(circle at 50% -10%, #356b53, #16291f 70%, #0d1813 100%);
+  background:
+    radial-gradient(circle at 50% -10%, #3d7a5e, #16291f 68%, #0a140f 100%),
+    radial-gradient(circle at 50% 120%, #1c3b2d, transparent 60%);
   color: var(--text);
   min-height: 100vh;
   display: flex;
   justify-content: center;
   user-select: none;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+/* 桌面毛毡纹理叠加，增加质感 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: .04;
+  background-image:
+    repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: overlay;
 }
 /* 缓慢流动的光晕背景 */
 body::before {
@@ -86,11 +107,24 @@ body::before {
 }
 
 .panel {
-  background: linear-gradient(180deg, var(--panel-light), var(--panel));
-  border: 1px solid #ffffff14;
-  border-radius: 12px;
+  background:
+    linear-gradient(180deg, var(--panel-light), var(--panel));
+  border: 1px solid #ffffff1f;
+  border-radius: 14px;
   padding: 12px 14px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), inset 0 1px 0 #ffffff1a;
+  position: relative;
+  backdrop-filter: blur(2px);
+}
+/* 面板顶部高光线 */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 40%;
+  border-radius: 14px 14px 0 0;
+  background: linear-gradient(180deg, #ffffff10, transparent);
+  pointer-events: none;
 }
 
 .blind-panel { text-align: center; }
@@ -931,18 +965,29 @@ body::before {
 }
 .btn {
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px 22px;
   font-size: 16px;
   font-weight: 800;
   color: #fff;
   cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: transform .1s ease, filter .1s ease;
+  box-shadow: var(--shadow), inset 0 1px 0 #ffffff3a, inset 0 -2px 4px #00000030;
+  text-shadow: 0 1px 2px #00000055;
+  transition: transform .12s cubic-bezier(.2,.8,.3,1.2), filter .12s ease, box-shadow .12s ease;
+  position: relative;
+  overflow: hidden;
 }
-.btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
-.btn:active:not(:disabled) { transform: translateY(0); }
-.btn:disabled { opacity: .45; cursor: not-allowed; }
+/* 按钮顶部高光 */
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 50% 0;
+  background: linear-gradient(180deg, #ffffff2e, transparent);
+  pointer-events: none;
+}
+.btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.12) saturate(1.1); box-shadow: var(--shadow-lg), inset 0 1px 0 #ffffff4a; }
+.btn:active:not(:disabled) { transform: translateY(1px) scale(.98); }
+.btn:disabled { opacity: .4; cursor: not-allowed; filter: grayscale(.3); }
 .btn-play { background: linear-gradient(180deg, #57c777, #2f8f4e); }
 .btn-discard { background: linear-gradient(180deg, #e4654a, #b23a26); }
 .btn-sort { background: linear-gradient(180deg, #5d7891, #3d5266); font-size: 13px; padding: 12px 16px; }
@@ -953,22 +998,30 @@ body::before {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .65);
+  background: radial-gradient(circle at 50% 40%, rgba(20,40,30,.55), rgba(0,0,0,.78));
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(6px) saturate(1.1);
+  animation: overlayIn .25s ease;
 }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
 .hidden { display: none !important; }
 
-.shop, .blind-select, .end-box {
-  background: linear-gradient(180deg, #20303a, #16242c);
-  border: 2px solid var(--gold);
-  border-radius: 16px;
+.shop, .blind-select, .end-box, .deck-viewer {
+  background:
+    linear-gradient(180deg, #243744, #141f27);
+  border: 1px solid var(--gold);
+  border-radius: 18px;
   padding: 22px;
   width: min(680px, 92vw);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-lg), 0 0 32px #ffd86622, inset 0 1px 0 #ffffff14;
+  animation: popupIn .3s cubic-bezier(.2,.9,.3,1.3);
+}
+@keyframes popupIn {
+  from { opacity: 0; transform: translateY(20px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .shop-header, .shop-footer { display: flex; justify-content: space-between; align-items: center; }
 .shop-header h2 { color: var(--gold); }
@@ -1180,7 +1233,10 @@ body::before {
  * 卡牌 / 小丑牌 视觉增强
  * ============================================================ */
 .card {
-  background: linear-gradient(160deg, #ffffff, #ece8db);
+  background:
+    linear-gradient(160deg, #ffffff 0%, #f5f1e6 55%, #e6e0cf 100%);
+  border: 1px solid #00000018;
+  box-shadow: var(--shadow), inset 0 1px 0 #ffffffcc, inset 0 -2px 4px #00000010;
   transition: transform .15s cubic-bezier(.2,.8,.3,1), box-shadow .15s ease;
 }
 .card::after { /* 高光泽 */
@@ -1509,12 +1565,60 @@ body {
   #logToggle { top: 6px; right: 6px; width: 34px; height: 34px; font-size: 14px; }
   #logPanel.open ~ #logToggle { right: calc(86vw + 6px); }
 
-  /* 商店里小丑牌也允许横滚 */
+  /* 商店里所有商品行横滚 */
   .shop-items {
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding-bottom: 4px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
   }
+  .shop-items .shop-item { scroll-snap-align: start; flex: 0 0 auto; }
+
+  /* 商店弹层：可整体竖向滚动，限制高度避免溢出屏幕 */
+  .shop {
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 14px 12px;
+  }
+  .shop-section { margin-bottom: 6px; }
+  .shop-section-title { margin: 10px 0 6px; font-size: 12px; }
+  .shop-section-title .hint { font-size: 10px; flex-basis: 100%; }
+  .shop-item .joker, .shop-item .consumable { transform: scale(.92); transform-origin: top center; }
+  .shop-item .buy { padding: 6px 10px; font-size: 12px; }
+  .shop-footer { position: sticky; bottom: 0; background: linear-gradient(180deg, transparent, #141f27 40%); padding-top: 10px; }
+
+  /* 牌库查看器移动端 */
+  .deck-viewer { padding: 12px; width: 96vw; max-height: 90vh; }
+  .deck-viewer-header { flex-wrap: wrap; gap: 8px; }
+  .deck-viewer-header h2 { font-size: 18px; }
+  .deck-stats { font-size: 11px; flex-basis: 100%; order: 3; }
+  .deck-grid { grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 5px; }
+  .deck-mini { min-height: 46px; padding: 4px 1px; }
+  .deck-mini .dm-rank { font-size: 13px; }
+  .deck-mini .dm-tags { font-size: 6.5px; }
+
+  /* 塔罗选牌条：贴在底部操作栏上方 */
+  .tarot-bar {
+    bottom: calc(env(safe-area-inset-bottom) + 70px);
+    width: 94vw;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .tarot-bar .tb-name { flex-basis: 100%; text-align: center; }
+  .tarot-bar .btn { flex: 1; padding: 8px 6px; }
+
+  /* Boss 标签换行显示 */
+  .blind-name { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .boss-tag { font-size: 9px; margin-left: 0; padding: 1px 5px; }
+
+  /* 牌库按钮与行标签 */
+  .mini-btn { font-size: 10px; padding: 2px 6px; }
+
+  /* 屏幕中央提示缩小 */
+  .center-toast { font-size: 20px; }
 }
 
 /* ---------- 极矮屏（如折叠展开横用 / iPhone SE landscape） ---------- */
@@ -1550,5 +1654,19 @@ body {
 
 /* ---------- 安装后的 PWA 独立模式 ---------- */
 @media (display-mode: standalone) {
-  body { background: radial-gradient(circle at 50% -10%, #356b53, #16291f 70%, #0d1813 100%); }
+  body {
+    background:
+      radial-gradient(circle at 50% -10%, #3d7a5e, #16291f 68%, #0a140f 100%),
+      radial-gradient(circle at 50% 120%, #1c3b2d, transparent 60%);
+  }
+}
+
+/* ---------- 高分屏更锐利的卡牌阴影 ---------- */
+@media (min-resolution: 2dppx) {
+  .card, .joker, .consumable { box-shadow: var(--shadow); }
+}
+
+/* ---------- 减少动效（无障碍 / 省电） ---------- */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .05ms !important; }
 }

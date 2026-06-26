@@ -5,7 +5,7 @@
  *   - 其它请求走 network-first，失败回退缓存（兜底）。
  *   - 升级 CACHE_VERSION 即可强制刷新。
  * ============================================================ */
-const CACHE_VERSION = "funnybuddy-v7";
+const CACHE_VERSION = "funnybuddy-v8";
 const PRECACHE_URLS = [
   "./",
   "./index.html",
