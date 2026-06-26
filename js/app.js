@@ -39,13 +39,13 @@
     },
     onSortRank: () => { if (!busy) core.sortByRank(); },
     onSortSuit: () => { if (!busy) core.sortBySuit(); },
+    // 从牌桌区点击/长按触发：需要二次确认（已由 view 内部 confirm 处理）
+    // 从商店"卖出"按钮触发：商店按钮已自己 confirm
     onSellJoker: (idx) => {
       if (busy) return;
       const s = core.getState();
       const j = s.jokers[idx];
       if (!j) return;
-      const value = Math.max(1, Math.floor(j.price / 2));
-      if (!confirm(`卖出「${j.name}」获得 $${value}？`)) return;
       core.sellJoker(idx);
       if (!isShopHidden()) view.renderShop();
     },
@@ -56,10 +56,34 @@
       }
       view.renderShop();
     },
+    onReorderJoker: (from, to) => {
+      core.reorderJokers(from, to);
+      if (!isShopHidden()) view.renderShop();
+    },
     onReroll: () => { core.reroll(); view.renderShop(); },
-    onNextRound: () => { view.hideShop(); core.nextRound(); },
+    onNextRound: () => {
+      view.hideShop();
+      if (shopOpenedFrom === "blindSelect") {
+        // 从盲注选择阶段进的商店：关闭后回到盲注选择
+        shopOpenedFrom = null;
+        core.startBlindSelect();
+      } else {
+        // 默认：回合胜利后进的商店，关闭即推进到下一盲注
+        shopOpenedFrom = null;
+        core.nextRound();
+      }
+    },
+    onOpenShop: () => {
+      // 在盲注选择阶段也允许开商店
+      shopOpenedFrom = "blindSelect";
+      view.hideBlindSelect();
+      core.openShop();
+    },
     onRestart: () => { view.hideEnd(); core.newGame(); },
   };
+
+  // 记录商店打开的来源："roundWin" | "blindSelect"
+  let shopOpenedFrom = null;
 
   const view = new window.GameView(query, handlers);
 
@@ -98,7 +122,10 @@
     view.flash("gold");
   });
 
-  core.on("shopOpen", () => view.showShop());
+  core.on("shopOpen", () => {
+    if (!shopOpenedFrom) shopOpenedFrom = "roundWin";
+    view.showShop();
+  });
 
   core.on("gameWin", (data) => { view.flash("gold"); view.showWin(data); });
   core.on("gameLose", (data) => { view.flash("red"); view.screenShake(); view.showLose(data); });

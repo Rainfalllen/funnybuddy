@@ -549,14 +549,70 @@ body::before {
 .shop-header, .shop-footer { display: flex; justify-content: space-between; align-items: center; }
 .shop-header h2 { color: var(--gold); }
 .shop-money { font-size: 18px; font-weight: 800; color: var(--gold); }
-.shop-section-title { margin: 16px 0 8px; color: var(--muted); font-size: 13px; }
-.shop-items { display: flex; gap: 14px; flex-wrap: wrap; min-height: 130px; }
-.shop-footer { margin-top: 18px; }
+.shop-section-title {
+  margin: 16px 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.shop-section-title .hint {
+  font-size: 11px;
+  color: #ffffff55;
+  font-weight: 400;
+}
+.shop-items {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  min-height: 130px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: #00000022;
+}
+.shop-items.owned {
+  background: linear-gradient(180deg, #ffd54a12, #ffd54a05);
+  border: 1px dashed #ffd54a44;
+}
+.shop-items.owned.moving-mode {
+  background: linear-gradient(180deg, #4aa3e433, #4aa3e411);
+  border-color: var(--blue);
+}
+.shop-items.owned.moving-mode::before {
+  content: "👆 点击目标位置完成移动 · 点击当前牌取消";
+  display: block;
+  width: 100%;
+  text-align: center;
+  color: var(--blue);
+  font-size: 12px;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+.shop-footer { margin-top: 18px; display: flex; justify-content: space-between; }
 
 .shop-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .shop-item .price { color: var(--gold); font-weight: 800; font-size: 14px; }
 .shop-item .buy { font-size: 12px; padding: 6px 12px; }
 .shop-item.sold { opacity: .4; }
+
+/* 拖拽中样式 */
+.shop-item.owned-item { cursor: grab; transition: transform .15s ease, opacity .15s ease; }
+.shop-item.owned-item:active { cursor: grabbing; }
+.shop-item.owned-item.dragging {
+  opacity: .4;
+  transform: scale(.92);
+}
+.shop-item.owned-item.drop-target {
+  outline: 2px dashed var(--gold);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+/* 盲注弹层底部"打开商店"按钮 */
+.blind-footer { margin-top: 14px; display: flex; justify-content: center; }
+.blind-footer .btn { font-size: 13px; padding: 8px 16px; }
 
 .blind-select { text-align: center; }
 .blind-select h2 { color: var(--gold); margin-bottom: 18px; }

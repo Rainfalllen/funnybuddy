@@ -33,8 +33,10 @@
         playBtn: $("playBtn"), discardBtn: $("discardBtn"),
         sortRankBtn: $("sortRankBtn"), sortSuitBtn: $("sortSuitBtn"),
         shopOverlay: $("shopOverlay"), shopJokers: $("shopJokers"), shopMoney: $("shopMoney"),
+        shopOwnedJokers: $("shopOwnedJokers"), shopOwnedCount: $("shopOwnedCount"),
         rerollBtn: $("rerollBtn"), nextRoundBtn: $("nextRoundBtn"),
         blindOverlay: $("blindOverlay"), blindSelectTitle: $("blindSelectTitle"), blindCards: $("blindCards"),
+        openShopBtn: $("openShopBtn"),
         endOverlay: $("endOverlay"), endTitle: $("endTitle"), endMsg: $("endMsg"), restartBtn: $("restartBtn"),
         floaters: $("floaters"),
         bgfx: $("bgfx"), fxLayer: $("fxLayer"), flash: $("flash"),
@@ -181,7 +183,12 @@
             node.classList.toggle("show-tip");
           });
         } else {
-          node.onclick = () => this.handlers.onSellJoker(idx);
+          node.onclick = () => {
+            const value = Math.max(1, Math.floor(j.price / 2));
+            if (confirm(`卖出「${j.name}」获得 $${value}？`)) {
+              this.handlers.onSellJoker(idx);
+            }
+          };
         }
       } else {
         // 商店里小丑牌（idx<0）：触屏单击切换 tip，方便看说明
@@ -353,6 +360,12 @@
       btn.onclick = onStart;
       card.appendChild(btn);
       e.blindCards.appendChild(card);
+
+      // 在盲注选择阶段也允许进入商店（用现有资金买卖/重排）
+      if (this.el.openShopBtn) {
+        this.el.openShopBtn.onclick = () => this.handlers.onOpenShop();
+      }
+
       e.blindOverlay.classList.remove("hidden");
     }
     hideBlindSelect() { this.el.blindOverlay.classList.add("hidden"); }
@@ -370,6 +383,8 @@
       const s = this.query.getState();
       const e = this.el;
       e.shopMoney.textContent = "$" + s.money;
+
+      // ----- 待售小丑牌 -----
       e.shopJokers.innerHTML = "";
       if (!s.shopItems.length) {
         e.shopJokers.innerHTML = '<div style="color:#9bb0a8">已无可购买的小丑牌</div>';
@@ -394,6 +409,95 @@
         e.shopJokers.appendChild(wrap);
       });
       this.el.rerollBtn.disabled = s.money < 5;
+
+      // ----- 我的小丑牌（可卖 + 可拖拽重排）-----
+      e.shopOwnedCount.textContent = `${s.jokers.length}/${s.maxJokers}`;
+      e.shopOwnedJokers.innerHTML = "";
+      if (!s.jokers.length) {
+        e.shopOwnedJokers.innerHTML = '<div style="color:#9bb0a8">还没有小丑牌，去商店买一张吧</div>';
+      }
+      s.jokers.forEach((j, idx) => {
+        const wrap = document.createElement("div");
+        wrap.className = "shop-item owned-item";
+        wrap.draggable = true;
+        wrap.dataset.idx = idx;
+
+        // 复用 _jokerNode，但用一个不与"鼠标点击=卖出"冲突的 idx（-2 表示商店里的已拥有）
+        const jokerEl = this._jokerNode(j, -2);
+        wrap.appendChild(jokerEl);
+
+        const value = Math.max(1, Math.floor(j.price / 2));
+        const sell = document.createElement("button");
+        sell.className = "btn btn-discard buy";
+        sell.textContent = `卖出 +$${value}`;
+        sell.onclick = (ev) => {
+          ev.stopPropagation();
+          if (confirm(`卖出「${j.name}」获得 $${value}？`)) {
+            this.handlers.onSellJoker(idx);
+          }
+        };
+        wrap.appendChild(sell);
+
+        // ---- HTML5 拖拽重排 ----
+        wrap.addEventListener("dragstart", (ev) => {
+          wrap.classList.add("dragging");
+          ev.dataTransfer.effectAllowed = "move";
+          ev.dataTransfer.setData("text/plain", String(idx));
+        });
+        wrap.addEventListener("dragend", () => {
+          wrap.classList.remove("dragging");
+          e.shopOwnedJokers.querySelectorAll(".drop-target").forEach((n) => n.classList.remove("drop-target"));
+        });
+        wrap.addEventListener("dragover", (ev) => {
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = "move";
+          wrap.classList.add("drop-target");
+        });
+        wrap.addEventListener("dragleave", () => wrap.classList.remove("drop-target"));
+        wrap.addEventListener("drop", (ev) => {
+          ev.preventDefault();
+          wrap.classList.remove("drop-target");
+          const from = parseInt(ev.dataTransfer.getData("text/plain"), 10);
+          const to = parseInt(wrap.dataset.idx, 10);
+          if (Number.isInteger(from) && Number.isInteger(to)) {
+            this.handlers.onReorderJoker(from, to);
+          }
+        });
+
+        // ---- 触屏长按拖拽（简化版：长按高亮 + 再点目标位置完成移动）----
+        let lpTimer = null;
+        let isMoving = false;
+        jokerEl.addEventListener("touchstart", () => {
+          lpTimer = setTimeout(() => {
+            isMoving = true;
+            e.shopOwnedJokers.classList.add("moving-mode");
+            wrap.classList.add("dragging");
+          }, 500);
+        }, { passive: true });
+        jokerEl.addEventListener("touchend", () => clearTimeout(lpTimer));
+        jokerEl.addEventListener("touchmove", () => clearTimeout(lpTimer));
+        wrap.addEventListener("click", (ev) => {
+          if (!e.shopOwnedJokers.classList.contains("moving-mode")) return;
+          // 处于移动模式：点击其他位置即作为目标
+          const draggingEl = e.shopOwnedJokers.querySelector(".dragging");
+          if (!draggingEl || draggingEl === wrap) {
+            // 点自己：取消
+            e.shopOwnedJokers.classList.remove("moving-mode");
+            if (draggingEl) draggingEl.classList.remove("dragging");
+            return;
+          }
+          const from = parseInt(draggingEl.dataset.idx, 10);
+          const to = parseInt(wrap.dataset.idx, 10);
+          e.shopOwnedJokers.classList.remove("moving-mode");
+          draggingEl.classList.remove("dragging");
+          if (Number.isInteger(from) && Number.isInteger(to)) {
+            this.handlers.onReorderJoker(from, to);
+          }
+          ev.stopPropagation();
+        }, true);
+
+        e.shopOwnedJokers.appendChild(wrap);
+      });
     }
 
     // ============================================================

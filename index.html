@@ -87,13 +87,26 @@
   <div id="shopOverlay" class="overlay hidden">
     <div class="shop">
       <div class="shop-header">
-        <h2>商店</h2>
+        <h2>🛒 商店</h2>
         <div class="shop-money">资金 <span id="shopMoney">$0</span></div>
       </div>
+
       <div class="shop-section">
-        <div class="shop-section-title">小丑牌</div>
+        <div class="shop-section-title">
+          🎴 待售小丑牌
+          <span class="hint">点击购买</span>
+        </div>
         <div id="shopJokers" class="shop-items"></div>
       </div>
+
+      <div class="shop-section">
+        <div class="shop-section-title">
+          🤡 我的小丑牌 <span id="shopOwnedCount" class="hint">0/5</span>
+          <span class="hint">点击卖出 · 拖拽调整顺序（影响触发顺序）</span>
+        </div>
+        <div id="shopOwnedJokers" class="shop-items owned"></div>
+      </div>
+
       <div class="shop-footer">
         <button id="rerollBtn" class="btn btn-reroll">刷新 ($5)</button>
         <button id="nextRoundBtn" class="btn btn-next">下一回合 →</button>
@@ -106,6 +119,9 @@
     <div class="blind-select">
       <h2 id="blindSelectTitle">选择盲注</h2>
       <div id="blindCards" class="blind-cards"></div>
+      <div class="blind-footer">
+        <button id="openShopBtn" class="btn btn-reroll">🛒 进入商店</button>
+      </div>
     </div>
   </div>
 

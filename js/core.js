@@ -318,12 +318,18 @@
       this._log(`✅ 过关！奖励 $${reward} + 剩牌 $${handBonus} + 利息 $${interest} = +$${total}`, "good");
       this.emit("change");
       this.emit("roundWin", { reward, handBonus, interest, total });
-      this.openShop();
+      this.openShop(true);
     }
 
     // ---------- 商店 ----------
-    openShop() {
-      this.state.shopItems = this.rollShop();
+    // reroll=true 时强制刷新（用于过关后第一次开店）；
+    // 默认 false：如果商店里还有未售出的物品就保留，避免"开关商店当作免费刷新"。
+    openShop(reroll = false) {
+      const s = this.state;
+      const hasItems = s.shopItems && s.shopItems.some((it) => !it.sold);
+      if (reroll || !hasItems) {
+        s.shopItems = this.rollShop();
+      }
       this.emit("shopOpen");
       this.emit("change");
     }
@@ -366,6 +372,21 @@
       this._log(`💰 卖出小丑牌【${j.name}】 +$${value}`, "buy");
       this.emit("change");
       return value;
+    }
+
+    // 调整小丑牌顺序（拖拽重排用；位置影响触发顺序）
+    reorderJokers(fromIdx, toIdx) {
+      const arr = this.state.jokers;
+      if (fromIdx === toIdx) return false;
+      if (fromIdx < 0 || fromIdx >= arr.length) return false;
+      if (toIdx < 0 || toIdx > arr.length) return false;
+      const [moved] = arr.splice(fromIdx, 1);
+      // 删除后插入位置可能偏移
+      const insertAt = toIdx > fromIdx ? toIdx - 1 : toIdx;
+      arr.splice(insertAt, 0, moved);
+      this._log(`↔ 调整小丑牌【${moved.name}】位置`, "info");
+      this.emit("change");
+      return true;
     }
 
     // ---------- 进入下一回合 ----------
