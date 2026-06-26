@@ -29,7 +29,7 @@
         anteView: $("anteView"), roundView: $("roundView"),
         jokers: $("jokers"), jokerCount: $("jokerCount"),
         consumables: $("consumables"), consumableCount: $("consumableCount"),
-        shopPlanets: $("shopPlanets"),
+        shopPlanets: $("shopPlanets"), shopTarots: $("shopTarots"),
         handTypeBanner: $("handTypeBanner"), handTypeName: $("handTypeName"), handTypeLevel: $("handTypeLevel"),
         playArea: $("playArea"), hand: $("hand"), deckCount: $("deckCount"),
         playBtn: $("playBtn"), discardBtn: $("discardBtn"),
@@ -93,7 +93,11 @@
     renderTopbar() {
       const s = this.query.getState();
       const e = this.el;
-      e.blindName.textContent = s.blindName;
+      if (s.bossEffect) {
+        e.blindName.innerHTML = `${s.blindName} <span class="boss-tag" title="${s.bossEffect.desc}">${s.bossEffect.icon} ${s.bossEffect.name}</span>`;
+      } else {
+        e.blindName.textContent = s.blindName;
+      }
       e.targetScore.textContent = s.targetScore.toLocaleString();
       e.blindReward.textContent = "奖励 $" + s.blindReward;
       e.roundScore.textContent = s.roundScore.toLocaleString();
@@ -105,16 +109,44 @@
       e.deckCount.textContent = s.deckCount;
     }
 
-    // ---------- 卡牌节点 ----------
+    // ---------- 卡牌节点（含增强/版本/封） ----------
     _cardNode(c, selectable, selectedSet) {
+      const C = window.Cards;
       const node = document.createElement("div");
+      const enh = c.enhancement && c.enhancement !== "none" ? c.enhancement : null;
+      const ed = c.edition && c.edition !== "none" ? c.edition : null;
+      const seal = c.seal && c.seal !== "none" ? c.seal : null;
       node.className = "card " + (c.color === "red" ? "red" : "black");
+      if (enh) node.classList.add("enh-" + enh);
+      if (ed) node.classList.add("ed-" + ed);
+      if (seal) node.classList.add("seal-" + seal);
       node.dataset.cardId = c.id;
       if (selectedSet && selectedSet.has(c.id)) node.classList.add("selected");
-      node.innerHTML = `
+
+      // 石头牌不显示点数花色
+      const isStone = enh === "stone";
+      const corner = isStone ? "" : `
         <div class="corner tl"><span>${c.label}</span><span>${c.symbol}</span></div>
-        <div class="pip-center">${c.symbol}</div>
-        <div class="corner br"><span>${c.label}</span><span>${c.symbol}</span></div>
+        <div class="corner br"><span>${c.label}</span><span>${c.symbol}</span></div>`;
+      const center = isStone ? "🪨" : c.symbol;
+
+      // 角标徽章
+      const badges = [];
+      if (enh) {
+        const e = C.ENHANCEMENTS[enh];
+        if (e && e.badge) badges.push(`<span class="card-badge enh" title="${e.name}">${e.badge}</span>`);
+      }
+      if (ed) {
+        const e = C.EDITIONS[ed];
+        if (e) badges.push(`<span class="card-badge ed" title="${e.name}">${e.name[0]}</span>`);
+      }
+      const sealHtml = seal ? `<span class="card-seal seal-${seal}" title="${C.SEALS[seal].name}"></span>` : "";
+
+      node.innerHTML = `
+        ${corner}
+        <div class="pip-center">${center}</div>
+        ${sealHtml}
+        <div class="card-badges">${badges.join("")}</div>
       `;
       if (selectable) node.onclick = () => this.handlers.onCardClick(c.id);
       return node;
@@ -138,7 +170,8 @@
     _jokerNode(j, idx) {
       const node = document.createElement("div");
       const rarity = j.rarity || "common";
-      node.className = `joker rarity-${rarity}`;
+      const edition = j.edition && j.edition !== "none" ? j.edition : null;
+      node.className = `joker rarity-${rarity}` + (edition ? ` ed-${edition}` : "");
       // 用 id 的字符和数算出一个稳定的色相，让每张小丑牌底色微妙不同
       const hue = (() => {
         let h = 0;
@@ -160,7 +193,8 @@
         <div class="joker-rarity-badge">${
           rarity === "uncommon" ? "稀有" : rarity === "rare" ? "罕见" : rarity === "legendary" ? "传说" : "普通"
         }</div>
-        <div class="tip"><b>${j.name}</b><br>${j.desc}</div>
+        ${edition ? `<div class="joker-edition-badge">${window.Cards.EDITIONS[edition].name}</div>` : ""}
+        <div class="tip"><b>${j.name}</b>${edition ? ` <span style="color:#ff7eb9">[${window.Cards.EDITIONS[edition].name}]</span>` : ""}<br>${j.desc}${edition ? `<br><span style="color:#9bb0a8">版本：${window.Cards.EDITIONS[edition].desc}</span>` : ""}</div>
       `;
 
       if (idx >= 0) {
@@ -221,12 +255,20 @@
     _consumableNode(c, idx) {
       const node = document.createElement("div");
       node.className = "consumable kind-" + (c.kind || "planet");
-      const target = c.target ? (window.Cards.HAND_TYPES[c.target] || {}).name : "";
+      let effectHtml, tipHtml;
+      if (c.kind === "tarot") {
+        effectHtml = `<div class="cons-effect">${c.desc}</div>`;
+        tipHtml = `<b>${c.name}</b><br>${c.desc}<br><span style="color:#9bb0a8">点击使用（需选牌）· 右键/长按卖出</span>`;
+      } else {
+        const target = c.target ? (window.Cards.HAND_TYPES[c.target] || {}).name : "";
+        effectHtml = `<div class="cons-effect">升级<br><b>${target}</b></div>`;
+        tipHtml = `<b>${c.name}</b><br>使用后升级牌型【${target}】等级<br><span style="color:#9bb0a8">点击使用 · 右键/长按卖出</span>`;
+      }
       node.innerHTML = `
         <div class="cons-face">${c.face}</div>
         <div class="cons-name">${c.name}</div>
-        <div class="cons-effect">升级<br><b>${target}</b></div>
-        <div class="tip"><b>${c.name}</b><br>使用后升级牌型【${target}】等级<br><span style="color:#9bb0a8">点击使用 · 右键/长按卖出</span></div>
+        ${effectHtml}
+        <div class="tip">${tipHtml}</div>
       `;
       // 点击使用
       node.addEventListener("click", () => this.handlers.onUseConsumable(idx));
@@ -585,6 +627,55 @@
           e.shopPlanets.appendChild(wrap);
         });
       }
+
+      // ----- 待售塔罗牌 -----
+      if (e.shopTarots) {
+        e.shopTarots.innerHTML = "";
+        const tarots = s.shopTarots || [];
+        if (!tarots.length) {
+          e.shopTarots.innerHTML = '<div style="color:#9bb0a8">暂无塔罗牌</div>';
+        }
+        tarots.forEach((item, idx) => {
+          const wrap = document.createElement("div");
+          wrap.className = "shop-item" + (item.sold ? " sold" : "");
+          wrap.appendChild(this._tarotPreviewNode(item.tarot));
+
+          const price = document.createElement("div");
+          price.className = "price";
+          price.textContent = "$" + item.tarot.price;
+          wrap.appendChild(price);
+
+          const buy = document.createElement("button");
+          buy.className = "btn btn-play buy";
+          buy.textContent = item.sold ? "已购买" : "购买";
+          buy.disabled = item.sold || s.money < item.tarot.price ||
+            (s.consumables && s.consumables.length >= s.maxConsumables);
+          buy.onclick = () => this.handlers.onBuyTarot(idx);
+          wrap.appendChild(buy);
+
+          e.shopTarots.appendChild(wrap);
+        });
+      }
+    }
+
+    // 塔罗牌预览节点
+    _tarotPreviewNode(t) {
+      const node = document.createElement("div");
+      node.className = "consumable kind-tarot";
+      node.innerHTML = `
+        <div class="cons-face">${t.face}</div>
+        <div class="cons-name">${t.name}</div>
+        <div class="cons-effect">${t.desc}</div>
+        <div class="tip"><b>${t.name}</b><br>${t.desc}</div>
+      `;
+      const isTouchEnv = window.matchMedia("(hover: none)").matches;
+      if (isTouchEnv) {
+        node.addEventListener("click", () => {
+          document.querySelectorAll(".consumable.show-tip,.joker.show-tip").forEach((n) => { if (n !== node) n.classList.remove("show-tip"); });
+          node.classList.toggle("show-tip");
+        });
+      }
+      return node;
     }
 
     // 商店里的行星牌预览（不绑定使用/卖出，只展示 + tip）
@@ -695,6 +786,77 @@
       t.textContent = text;
       this.el.floaters.appendChild(t);
       setTimeout(() => t.remove(), 1400);
+    }
+
+    // 高亮被塔罗牌改造的手牌
+    highlightCards(cardIds) {
+      this.renderHand(); // 先重渲染应用新外观
+      cardIds.forEach((id) => {
+        const node = this.el.hand.querySelector(`[data-card-id="${id}"]`);
+        if (node) {
+          node.classList.add("scoring");
+          this.burst(node, "#b07fe0", 12);
+          setTimeout(() => node.classList.remove("scoring"), 500);
+        }
+      });
+    }
+
+    // ===== 塔罗选牌模式 =====
+    enterTarotMode(sel) {
+      this._tarot = sel;
+      // 顶部提示条
+      let bar = document.getElementById("tarotBar");
+      if (!bar) {
+        bar = document.createElement("div");
+        bar.id = "tarotBar";
+        bar.className = "tarot-bar";
+        document.body.appendChild(bar);
+      }
+      bar.innerHTML = `
+        <span class="tb-name">🔮 ${sel.name}</span>
+        <span class="tb-hint">请选择 ${sel.min}~${sel.max} 张手牌</span>
+        <span class="tb-count" id="tarotCount">0</span>
+        <button class="btn btn-play tb-ok" id="tarotOk">确认使用</button>
+        <button class="btn btn-discard tb-cancel" id="tarotCancel">取消</button>
+      `;
+      bar.classList.add("show");
+      document.getElementById("tarotOk").onclick = () => this.handlers.onTarotConfirm();
+      document.getElementById("tarotCancel").onclick = () => this.handlers.onTarotCancel();
+      // 手牌点击改为塔罗选牌
+      this.el.hand.classList.add("tarot-picking");
+      this._bindTarotHand();
+    }
+    _bindTarotHand() {
+      this.el.hand.querySelectorAll(".card").forEach((node) => {
+        const id = parseInt(node.dataset.cardId, 10);
+        node.onclick = () => this.handlers.onTarotCardClick(id);
+      });
+    }
+    updateTarotSelection(sel) {
+      this._tarot = sel;
+      this.el.hand.querySelectorAll(".card").forEach((node) => {
+        const id = parseInt(node.dataset.cardId, 10);
+        node.classList.toggle("tarot-selected", sel.chosen.has(id));
+      });
+      const cnt = document.getElementById("tarotCount");
+      if (cnt) cnt.textContent = sel.chosen.size;
+    }
+    flashTarotHint(text) {
+      const bar = document.getElementById("tarotBar");
+      if (!bar) return;
+      const hint = bar.querySelector(".tb-hint");
+      if (hint) {
+        hint.textContent = text;
+        hint.classList.add("shake-hint");
+        setTimeout(() => hint.classList.remove("shake-hint"), 500);
+      }
+    }
+    exitTarotMode() {
+      this._tarot = null;
+      const bar = document.getElementById("tarotBar");
+      if (bar) bar.classList.remove("show");
+      this.el.hand.classList.remove("tarot-picking");
+      this.renderHand(); // 恢复普通手牌点击
     }
 
     // 在某节点中心迸发粒子

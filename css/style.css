@@ -255,6 +255,79 @@ body::before {
   100% { transform: translateY(-18px) scale(1); }
 }
 
+/* ===== 扑克牌徽章 / 增强 / 版本 / 蜡封 ===== */
+.card .card-badges {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+  z-index: 3;
+}
+.card .card-badge {
+  font-size: 10px;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: #00000055;
+}
+.card .card-badge.ed {
+  color: #fff;
+  background: linear-gradient(135deg, #ff7eb9, #4aa3e4);
+  font-weight: 800;
+}
+.card .card-seal {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  z-index: 3;
+  box-shadow: 0 0 6px currentColor;
+}
+.card .card-seal.seal-gold { background: var(--gold); color: var(--gold); }
+.card .card-seal.seal-red  { background: var(--red);  color: var(--red); }
+.card .card-seal.seal-blue { background: var(--blue); color: var(--blue); }
+
+/* 增强底色 */
+.card.enh-mult   { background: linear-gradient(160deg, #ffd9d9, #ffb0b0); }
+.card.enh-bonus  { background: linear-gradient(160deg, #d9ecff, #acd5ff); }
+.card.enh-gold   { background: linear-gradient(160deg, #fff3c4, #ffd54a); }
+.card.enh-steel  { background: linear-gradient(160deg, #e2e8ee, #b6c2cf); }
+.card.enh-glass  { background: linear-gradient(160deg, #eafcff, #cdeef5); box-shadow: var(--shadow), 0 0 12px #9fe8ff88; }
+.card.enh-stone  { background: linear-gradient(160deg, #c9c9c9, #8e8e8e); color: #333; }
+.card.enh-wild   { background: linear-gradient(160deg, #ffe6ff, #d9c2ff); }
+.card.enh-lucky  { background: linear-gradient(160deg, #d9ffe0, #a7f0b8); }
+
+/* 版本：多彩流光 / 全息 / 闪箔 */
+.card.ed-polychrome::before,
+.card.ed-holographic::before,
+.card.ed-foil::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9px;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  z-index: 2;
+}
+.card.ed-polychrome::before {
+  background: conic-gradient(from 0deg, #ff7eb966, #ffd54a66, #57c7c466, #4aa3e466, #8a52d866, #ff7eb966);
+  opacity: .6;
+  animation: holoSpin 6s linear infinite;
+}
+.card.ed-holographic::before {
+  background: linear-gradient(115deg, transparent 40%, #b0e0ff88 50%, transparent 60%);
+  background-size: 250% 100%;
+  animation: holoShine 4s ease-in-out infinite;
+}
+.card.ed-foil::before {
+  background: linear-gradient(135deg, #cfd8ff55, #fff3, #cfd8ff55);
+}
+
 /* ---------- 小丑牌（Balatro 风格） ---------- */
 .joker {
   --joker-hue: 270;
@@ -676,6 +749,84 @@ body::before {
   20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
   75%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -60%) scale(.95); }
+}
+
+/* ===== 小丑牌版本徽章 + 版本流光 ===== */
+.joker .joker-edition-badge {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #ff7eb9, #4aa3e4);
+  color: #fff;
+  z-index: 4;
+  box-shadow: 0 0 8px #ff7eb988;
+}
+.joker.ed-polychrome .joker-holo { opacity: .9 !important; }
+.joker.ed-holographic { box-shadow: var(--shadow), 0 0 18px #57c7c4aa; }
+.joker.ed-foil { box-shadow: var(--shadow), 0 0 18px #b0c4ffaa; }
+.joker.ed-polychrome { box-shadow: var(--shadow), 0 0 20px #ff7eb9aa; }
+
+/* ===== Boss 标签 ===== */
+.boss-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #e44b4b, #8e1f1f);
+  border: 1px solid #ffd54a88;
+  padding: 1px 6px;
+  border-radius: 6px;
+  margin-left: 4px;
+  vertical-align: middle;
+  box-shadow: 0 0 10px #e44b4b88;
+  animation: bossPulse 1.6s ease-in-out infinite;
+}
+@keyframes bossPulse {
+  0%,100% { box-shadow: 0 0 8px #e44b4b66; }
+  50% { box-shadow: 0 0 16px #e44b4bcc; }
+}
+
+/* ===== 塔罗选牌模式 ===== */
+.tarot-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 90px;
+  transform: translateX(-50%) translateY(40px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, #2a1850ee, #160b2aee);
+  border: 1px solid #b07fe0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  z-index: 120;
+  box-shadow: 0 8px 24px #000a, 0 0 20px #8a52d888;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s cubic-bezier(.2,.8,.3,1.3);
+}
+.tarot-bar.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.tarot-bar .tb-name { font-weight: 800; color: #d9b8ff; }
+.tarot-bar .tb-hint { font-size: 12px; color: #cfe6ff; }
+.tarot-bar .tb-hint.shake-hint { animation: shake .4s; color: var(--red); }
+.tarot-bar .tb-count {
+  font-weight: 900;
+  color: var(--gold);
+  min-width: 18px;
+  text-align: center;
+}
+.tarot-bar .btn { padding: 8px 14px; font-size: 13px; }
+
+/* 塔罗选牌时手牌高亮可点 */
+.card-strip.hand.tarot-picking .card { cursor: crosshair; }
+.card.tarot-selected {
+  transform: translateY(-16px) scale(1.05);
+  box-shadow: 0 12px 22px rgba(0,0,0,.55), 0 0 0 3px #b07fe0, 0 0 20px #8a52d8aa;
+  z-index: 4;
 }
 
 /* ---------- 按钮 ---------- */

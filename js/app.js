@@ -64,9 +64,48 @@
     },
     onUseConsumable: (idx) => {
       if (busy) return;
-      const res = core.useConsumable(idx);
-      if (res && res.ok && window.SFX) window.SFX.buy();
-      if (!isShopHidden()) view.renderShop();
+      // 先尝试直接使用（无需选牌的：行星牌、隐士等）
+      const res = core.useConsumable(idx, []);
+      if (res && res.ok) {
+        if (window.SFX) window.SFX.buy();
+        if (!isShopHidden()) view.renderShop();
+        return;
+      }
+      // 需要选牌 → 进入塔罗选牌模式
+      if (res && res.reason === "needSelect") {
+        if (!isShopHidden()) {
+          alert("请先关闭商店，回到牌桌选择要改造的手牌后再使用。");
+          return;
+        }
+        tarotSelect = { idx, min: res.min, max: res.max, name: res.name, chosen: new Set() };
+        view.enterTarotMode(tarotSelect);
+      }
+    },
+    onTarotConfirm: () => {
+      if (!tarotSelect) return;
+      const ids = Array.from(tarotSelect.chosen);
+      const res = core.useConsumable(tarotSelect.idx, ids);
+      if (res && res.ok) {
+        if (window.SFX) window.SFX.buy();
+        view.exitTarotMode();
+        tarotSelect = null;
+      } else if (res && res.reason === "needSelect") {
+        view.flashTarotHint(`需选择 ${res.min}~${res.max} 张牌`);
+      }
+    },
+    onTarotCancel: () => {
+      view.exitTarotMode();
+      tarotSelect = null;
+    },
+    onTarotCardClick: (id) => {
+      if (!tarotSelect) return;
+      const set = tarotSelect.chosen;
+      if (set.has(id)) set.delete(id);
+      else {
+        if (set.size >= tarotSelect.max) return;
+        set.add(id);
+      }
+      view.updateTarotSelection(tarotSelect);
     },
     onSellConsumable: (idx) => {
       if (busy) return;
@@ -79,6 +118,15 @@
     },
     onBuyPlanet: (idx) => {
       const res = core.buyPlanet(idx);
+      if (res && res.ok) {
+        if (window.SFX) window.SFX.buy();
+      } else if (!res.ok && res.reason === "full") {
+        alert("消耗牌已满（上限 " + core.CONFIG.MAX_CONSUMABLES + " 张），请先使用或卖出。");
+      }
+      view.renderShop();
+    },
+    onBuyTarot: (idx) => {
+      const res = core.buyTarot(idx);
       if (res && res.ok) {
         if (window.SFX) window.SFX.buy();
       } else if (!res.ok && res.reason === "full") {
@@ -110,6 +158,8 @@
 
   // 记录商店打开的来源："roundWin" | "blindSelect"
   let shopOpenedFrom = null;
+  // 塔罗选牌模式状态：{ idx, min, max, name, chosen:Set }
+  let tarotSelect = null;
 
   const view = new window.GameView(query, handlers);
 
@@ -153,12 +203,19 @@
     view.showShop();
   });
 
-  // 使用行星牌：金色闪光 + 牌型升级提示飘字
+  // 使用消耗牌特效
   core.on("consumableUsed", (data) => {
     view.flash("gold");
-    if (data && data.kind === "planet" && window.Cards) {
+    if (!data) return;
+    if (data.kind === "planet" && window.Cards) {
       const name = (window.Cards.HAND_TYPES[data.target] || {}).name || "";
       view.toastCenter("🪐 " + name + " 升级！");
+    } else if (data.kind === "tarot") {
+      view.toastCenter("🔮 " + data.name + (data.note ? " · " + data.note : ""));
+      // 被改造的牌闪一下
+      if (data.cardIds && data.cardIds.length) {
+        setTimeout(() => view.highlightCards(data.cardIds), 50);
+      }
     }
   });
 

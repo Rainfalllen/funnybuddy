@@ -5,9 +5,10 @@
  * 通过方法接收外界（控制层）的操作指令。
  * ============================================================ */
 (function () {
-  const { HAND_TYPES, getHandStats, buildDeck, shuffle, evaluateHand } = window.Cards;
+  const { HAND_TYPES, ENHANCEMENTS, EDITIONS, getHandStats, buildDeck, shuffle, evaluateHand } = window.Cards;
   const { JOKER_POOL } = window.Jokers;
   const { PLANET_POOL } = window.Planets;
+  const { TAROT_POOL } = window.Tarots || { TAROT_POOL: [] };
 
   // ---------- 规则常量 ----------
   const CONFIG = {
@@ -16,6 +17,18 @@
       { key: "small", name: "小盲注", mult: 1, reward: 3, desc: "普通盲注" },
       { key: "big", name: "大盲注", mult: 1.5, reward: 4, desc: "普通盲注" },
       { key: "boss", name: "Boss盲注", mult: 2, reward: 5, desc: "高额目标，全力以赴！" },
+    ],
+    // Boss 盲注的随机 debuff 效果
+    BOSS_EFFECTS: [
+      { id: "the_wall", name: "高墙", icon: "🧱", desc: "目标分数翻倍", targetMult: 2 },
+      { id: "the_hook", name: "钩子", icon: "🪝", desc: "每次出牌后随机弃 2 张手牌", discardAfterPlay: 2 },
+      { id: "club_debuff", name: "梅花诅咒", icon: "♣", desc: "梅花牌不计分", debuffSuit: "C" },
+      { id: "heart_debuff", name: "红桃诅咒", icon: "♥", desc: "红桃牌不计分", debuffSuit: "H" },
+      { id: "spade_debuff", name: "黑桃诅咒", icon: "♠", desc: "黑桃牌不计分", debuffSuit: "S" },
+      { id: "diamond_debuff", name: "方块诅咒", icon: "♦", desc: "方块牌不计分", debuffSuit: "D" },
+      { id: "the_arm", name: "巨臂", icon: "💪", desc: "本场所有牌型降 1 级计分", handLevelPenalty: 1 },
+      { id: "the_ox", name: "蛮牛", icon: "🐂", desc: "出牌次数 -1", handsPenalty: 1 },
+      { id: "the_fish", name: "鱼", icon: "🐟", desc: "弃牌次数 -1", discardsPenalty: 1 },
     ],
     HAND_SIZE: 8,
     MAX_HANDS: 4,
@@ -27,6 +40,7 @@
   };
 
   const isFace = (c) => c.rank >= 11 && c.rank <= 13;
+  const round2 = (n) => Math.round(n * 100) / 100;
 
   // ---------- 极简事件发射器 ----------
   class Emitter {
@@ -75,6 +89,8 @@
         rideCounter: 0,
         shopItems: [],
         shopPlanets: [],          // 商店出售的行星牌
+        shopTarots: [],           // 商店出售的塔罗牌
+        bossEffect: null,         // 当前 Boss debuff
       };
       this._log("🎴 新游戏开始，祝你好运！", "good");
       this.startBlindSelect();
@@ -106,6 +122,8 @@
         blindKey: b.key,
         shopItems: s.shopItems,
         shopPlanets: s.shopPlanets,
+        shopTarots: s.shopTarots,
+        bossEffect: this.activeBossEffect(),
       };
     }
 
@@ -121,21 +139,34 @@
     currentBlind() { return CONFIG.BLINDS[this.state.blindIndex]; }
     computeTarget() {
       const base = CONFIG.ANTE_BASE[this.state.ante - 1];
-      return Math.round(base * this.currentBlind().mult);
+      let target = Math.round(base * this.currentBlind().mult);
+      const boss = this.activeBossEffect();
+      if (boss && boss.targetMult) target = Math.round(target * boss.targetMult);
+      return target;
     }
 
     // ---------- 盲注选择 ----------
     startBlindSelect() {
-      this.state.targetScore = this.computeTarget();
+      const s = this.state;
       const b = this.currentBlind();
+      // Boss 盲注：随机选一个 debuff
+      if (b.key === "boss") {
+        const pool = CONFIG.BOSS_EFFECTS;
+        s.bossEffect = pool[Math.floor(Math.random() * pool.length)];
+      } else {
+        s.bossEffect = null;
+      }
+      s.targetScore = this.computeTarget();
+      const boss = this.activeBossEffect();
       this.emit("blindSelect", {
-        ante: this.state.ante,
+        ante: s.ante,
         totalAnte: CONFIG.TOTAL_ANTE,
         blindName: b.name,
         blindKey: b.key,
-        blindDesc: b.desc,
+        blindDesc: boss ? `${boss.icon} ${boss.name}：${boss.desc}` : b.desc,
         reward: b.reward,
-        target: this.state.targetScore,
+        target: s.targetScore,
+        boss: boss ? { name: boss.name, icon: boss.icon, desc: boss.desc } : null,
       });
       this.emit("change");
     }
@@ -143,11 +174,12 @@
     // ---------- 回合开始 ----------
     startRound() {
       const s = this.state;
+      const boss = this.activeBossEffect();
       s.deck = shuffle(buildDeck());
       s.hand = [];
       s.selected.clear();
-      s.handsLeft = CONFIG.MAX_HANDS;
-      s.discardsLeft = CONFIG.MAX_DISCARDS;
+      s.handsLeft = CONFIG.MAX_HANDS - ((boss && boss.handsPenalty) || 0);
+      s.discardsLeft = CONFIG.MAX_DISCARDS - ((boss && boss.discardsPenalty) || 0);
       s.roundScore = 0;
       s.handTypePlays = {};
       s.rideCounter = 0;
@@ -155,6 +187,7 @@
       this.drawToFull();
       this.sortByRank();
       this._log(`▶ 进入 ${this.currentBlind().name}，目标分数 ${s.targetScore.toLocaleString()}`, "blind");
+      if (boss) this._log(`${boss.icon} Boss 技能【${boss.name}】：${boss.desc}`, "bad");
       this.emit("roundStart");
       this.emit("change");
     }
@@ -207,8 +240,21 @@
       s.selected.clear();
 
       const res = evaluateHand(played);
-      const st = getHandStats(res.typeKey, s.handLevels); // 含等级的实际 chips/mult
-      const scoringIds = new Set(res.scoringCards.map((c) => c.id));
+      const boss = this.activeBossEffect(); // Boss debuff
+      // 巨臂：牌型降 1 级计分（最低 1 级）
+      let st = getHandStats(res.typeKey, s.handLevels);
+      if (boss && boss.handLevelPenalty) {
+        const lowered = {};
+        lowered[res.typeKey] = Math.max(1, (s.handLevels[res.typeKey] || 1) - boss.handLevelPenalty);
+        st = getHandStats(res.typeKey, lowered);
+      }
+
+      // Boss：被禁用花色的牌不计分
+      let scoringCards = res.scoringCards.slice();
+      if (boss && boss.debuffSuit) {
+        scoringCards = scoringCards.filter((c) => c.suit !== boss.debuffSuit);
+      }
+      const scoringIds = new Set(scoringCards.map((c) => c.id));
 
       // 牌型打出次数（含本次，供 supernova）
       s.handTypePlays[res.typeKey] = (s.handTypePlays[res.typeKey] || 0) + 1;
@@ -218,20 +264,41 @@
 
       // 收集计分步骤
       const steps = [];
+      const moneyEvents = []; // 计分过程中产生的金钱（幸运牌/金封）
       let chips = st.chips;
       let mult = st.mult;
+      let xmult = 1;
 
-      // 1) 参与计分的牌逐张加筹码
+      // 1) 参与计分的牌逐张结算（含增强/版本/封）
+      // 红封：本张牌重复触发一次
       for (const c of played) {
         if (!scoringIds.has(c.id)) continue;
-        chips += c.chips;
-        steps.push({ kind: "card", cardId: c.id, chips: c.chips, runChips: chips, runMult: mult });
+        const triggerTimes = c.seal === "red" ? 2 : 1;
+        for (let t = 0; t < triggerTimes; t++) {
+          const detail = this._scoreCard(c, moneyEvents);
+          chips += detail.chips;
+          mult += detail.mult;
+          xmult *= detail.xmult;
+          steps.push({
+            kind: "card",
+            cardId: c.id,
+            chips: detail.chips,
+            dMult: detail.mult || null,
+            xmult: detail.xmult !== 1 ? round2(xmult) : null,
+            runChips: chips,
+            runMult: mult,
+            repeat: t > 0,
+            tags: detail.tags,
+          });
+        }
+        // 金封：计分后 +$3
+        if (c.seal === "gold") moneyEvents.push({ cardId: c.id, amount: 3, reason: "金封" });
       }
 
       // 2) 小丑牌逐张结算
       const ctx = {
-        chips, mult, xmult: 1,
-        scoringCards: res.scoringCards,
+        chips, mult, xmult,
+        scoringCards,
         playedCards: played,
         handTypeKey: res.typeKey,
         game: s,
@@ -239,23 +306,40 @@
       s.jokers.forEach((j, idx) => {
         const before = { chips: ctx.chips, mult: ctx.mult, xmult: ctx.xmult };
         const triggered = j.effect(ctx);
-        if (triggered) {
+        // 小丑牌自身版本加成（foil/holo/poly）
+        const ed = EDITIONS[j.edition || "none"];
+        let edApplied = false;
+        if (ed && ed.key !== "none") {
+          if (ed.chips) ctx.chips += ed.chips;
+          if (ed.mult) ctx.mult += ed.mult;
+          if (ed.xmult) ctx.xmult *= ed.xmult;
+          edApplied = !!(ed.chips || ed.mult || ed.xmult);
+        }
+        if (triggered || edApplied) {
           steps.push({
             kind: "joker",
             jokerIndex: idx,
             dChips: ctx.chips - before.chips,
             dMult: ctx.mult - before.mult,
-            xmult: ctx.xmult !== before.xmult ? ctx.xmult : null,
+            xmult: ctx.xmult !== before.xmult ? round2(ctx.xmult) : null,
             runChips: ctx.chips,
             runMult: ctx.mult,
           });
         }
       });
 
-      const finalChips = Math.round(ctx.chips);
-      const finalMult = ctx.mult * ctx.xmult;
+      chips = ctx.chips; mult = ctx.mult; xmult = ctx.xmult;
+
+      const finalChips = Math.round(chips);
+      const finalMult = mult * xmult;
       const gained = Math.round(finalChips * finalMult);
       const projected = s.roundScore + gained;
+
+      // 记录本次计分待结算的副作用（动画后在 finishScoring 处理）
+      this._pendingSideEffects = {
+        moneyEvents,
+        playedCards: played,
+      };
 
       let outcome = "continue";
       if (projected >= s.targetScore) outcome = "win";
@@ -266,6 +350,7 @@
         played,
         scoringIds,
         steps,
+        moneyEvents,
         baseChips: st.chips,
         baseMult: st.mult,
         finalChips,
@@ -276,13 +361,64 @@
       };
     }
 
+    // 单张牌计分：返回 { chips, mult, xmult, tags[] }
+    _scoreCard(c, moneyEvents) {
+      let chips = 0, mult = 0, xmult = 1;
+      const tags = [];
+      // 石头牌无点数，但增强里自带 chips；其它牌用牌面 chips
+      if (c.enhancement !== "stone") {
+        chips += c.chips;
+      }
+      // 增强
+      const enh = ENHANCEMENTS[c.enhancement || "none"];
+      if (enh) {
+        if (enh.chips) { chips += enh.chips; tags.push("enh"); }
+        if (enh.mult) { mult += enh.mult; tags.push("enh"); }
+        if (enh.xmult) { xmult *= enh.xmult; tags.push("enh"); }
+        if (c.enhancement === "lucky") {
+          if (Math.random() < 0.2) { mult += 20; tags.push("lucky"); }
+          if (Math.random() < 1 / 15) { moneyEvents.push({ cardId: c.id, amount: 20, reason: "幸运" }); tags.push("luckymoney"); }
+        }
+      }
+      // 版本
+      const ed = EDITIONS[c.edition || "none"];
+      if (ed && ed.key !== "none") {
+        if (ed.chips) { chips += ed.chips; tags.push("edition"); }
+        if (ed.mult) { mult += ed.mult; tags.push("edition"); }
+        if (ed.xmult) { xmult *= ed.xmult; tags.push("edition"); }
+      }
+      return { chips, mult, xmult, tags };
+    }
+
     // 动画播放完成后调用：落实分数并推进流程
     finishScoring(result) {
-      this.state.roundScore = result.newRoundScore;
+      const s = this.state;
+      s.roundScore = result.newRoundScore;
       this._log(
         `🃏 打出【${result.handType.name}】 ${result.finalChips}×${Math.round(result.finalMult * 100) / 100} = +${result.gained.toLocaleString()} 分`,
         "play"
       );
+
+      // 计分副作用：金钱事件（幸运牌/金封）
+      if (result.moneyEvents && result.moneyEvents.length) {
+        let total = 0;
+        for (const ev of result.moneyEvents) total += ev.amount;
+        if (total > 0) {
+          s.money += total;
+          this._log(`💵 卡牌效果获得 +$${total}`, "buy");
+        }
+      }
+      // 玻璃牌：计分后按概率碎裂（从牌组移除——这里只在打出的牌里，已离开手牌，
+      // 仅作日志提示，真实 Balatro 是从牌库永久移除，这里简单处理）
+      if (result.played) {
+        for (const c of result.played) {
+          if (c.enhancement === "glass" && Math.random() < 0.25) {
+            this._removeFromDeck(c.id);
+            this._log(`💥 玻璃牌【${c.label}${c.symbol}】碎裂`, "bad");
+          }
+        }
+      }
+
       if (result.outcome === "win") {
         this.winRound();
         return;
@@ -298,8 +434,32 @@
         });
         return;
       }
+      // Boss 钩子：出牌后随机弃掉 N 张手牌
+      const boss = this.activeBossEffect();
+      if (boss && boss.discardAfterPlay && s.hand.length) {
+        const n = Math.min(boss.discardAfterPlay, s.hand.length);
+        for (let i = 0; i < n; i++) {
+          const idx = Math.floor(Math.random() * s.hand.length);
+          const removed = s.hand.splice(idx, 1)[0];
+          this._log(`🪝 钩子弃掉【${removed.label}${removed.symbol}】`, "discard");
+        }
+      }
       this.drawToFull();
       this.sortByRank(); // 内部已 emit change
+    }
+
+    // 从牌库/手牌移除某张牌（玻璃碎裂用）
+    _removeFromDeck(cardId) {
+      const s = this.state;
+      s.deck = s.deck.filter((c) => c.id !== cardId);
+      s.hand = s.hand.filter((c) => c.id !== cardId);
+    }
+
+    // 当前 Boss 盲注的 debuff 效果（仅 boss 盲注且已配置时返回）
+    activeBossEffect() {
+      const b = this.currentBlind();
+      if (b.key !== "boss") return null;
+      return this.state.bossEffect || null;
     }
 
     // ---------- 弃牌 ----------
@@ -322,11 +482,23 @@
       const reward = b.reward;
       const handBonus = s.handsLeft;
       const interest = Math.min(5, Math.floor(s.money / 5));
-      const total = reward + handBonus + interest;
+      // 小丑牌被动金钱（金券等）
+      let jokerMoney = 0;
+      for (const j of s.jokers) if (j.passiveMoney) jokerMoney += j.passiveMoney;
+      // 黄金牌：留在手牌的黄金牌每张 +$3（其它增强的 endMoney 通用）
+      let goldMoney = 0;
+      for (const c of s.hand) {
+        const enh = ENHANCEMENTS[c.enhancement || "none"];
+        if (enh && enh.endMoney) goldMoney += enh.endMoney;
+      }
+      const total = reward + handBonus + interest + jokerMoney + goldMoney;
       s.money += total;
-      this._log(`✅ 过关！奖励 $${reward} + 剩牌 $${handBonus} + 利息 $${interest} = +$${total}`, "good");
+      let extra = "";
+      if (jokerMoney) extra += ` + 小丑 $${jokerMoney}`;
+      if (goldMoney) extra += ` + 黄金牌 $${goldMoney}`;
+      this._log(`✅ 过关！奖励 $${reward} + 剩牌 $${handBonus} + 利息 $${interest}${extra} = +$${total}`, "good");
       this.emit("change");
-      this.emit("roundWin", { reward, handBonus, interest, total });
+      this.emit("roundWin", { reward, handBonus, interest, jokerMoney, goldMoney, total });
       this.openShop(true);
     }
 
@@ -336,10 +508,12 @@
     openShop(reroll = false) {
       const s = this.state;
       const hasItems = (s.shopItems && s.shopItems.some((it) => !it.sold)) ||
-                       (s.shopPlanets && s.shopPlanets.some((it) => !it.sold));
+                       (s.shopPlanets && s.shopPlanets.some((it) => !it.sold)) ||
+                       (s.shopTarots && s.shopTarots.some((it) => !it.sold));
       if (reroll || !hasItems) {
         s.shopItems = this.rollShop();
         s.shopPlanets = this.rollPlanets();
+        s.shopTarots = this.rollTarots();
       }
       this.emit("shopOpen");
       this.emit("change");
@@ -349,7 +523,19 @@
       const pool = JOKER_POOL.filter((j) => !ownedIds.has(j.id));
       shuffle(pool);
       const n = Math.min(2, pool.length) + (Math.random() < 0.5 ? 1 : 0);
-      return pool.slice(0, Math.min(n, pool.length)).map((j) => ({ joker: j, sold: false }));
+      return pool.slice(0, Math.min(n, pool.length)).map((j) => ({
+        joker: j,
+        edition: this._rollJokerEdition(),
+        sold: false,
+      }));
+    }
+    // 小丑牌版本掉落：约 15% 概率附带版本
+    _rollJokerEdition() {
+      const r = Math.random();
+      if (r < 0.05) return "polychrome";   // 5%
+      if (r < 0.10) return "holographic";  // 5%
+      if (r < 0.15) return "foil";         // 5%
+      return "none";
     }
     // 滚动出售的行星牌（1~2 张）
     rollPlanets() {
@@ -358,6 +544,13 @@
       const n = 1 + (Math.random() < 0.5 ? 1 : 0);
       return pool.slice(0, n).map((p) => ({ planet: p, sold: false }));
     }
+    // 滚动出售的塔罗牌（1~2 张）
+    rollTarots() {
+      const pool = TAROT_POOL.slice();
+      shuffle(pool);
+      const n = 1 + (Math.random() < 0.5 ? 1 : 0);
+      return pool.slice(0, n).map((t) => ({ tarot: t, sold: false }));
+    }
     buyJoker(idx) {
       const s = this.state;
       const item = s.shopItems[idx];
@@ -365,9 +558,13 @@
       if (s.money < item.joker.price) return { ok: false, reason: "money" };
       if (s.jokers.length >= CONFIG.MAX_JOKERS) return { ok: false, reason: "full" };
       s.money -= item.joker.price;
-      s.jokers.push(item.joker);
+      // 拷贝一份小丑牌实例（避免污染图鉴），并按概率附加版本
+      const inst = Object.assign({}, item.joker);
+      inst.edition = item.edition || "none";
+      s.jokers.push(inst);
       item.sold = true;
-      this._log(`🛒 购买小丑牌【${item.joker.name}】 -$${item.joker.price}`, "buy");
+      const edName = inst.edition !== "none" ? `（${EDITIONS[inst.edition].name}）` : "";
+      this._log(`🛒 购买小丑牌【${item.joker.name}】${edName} -$${item.joker.price}`, "buy");
       this.emit("change");
       return { ok: true };
     }
@@ -385,29 +582,63 @@
       this.emit("change");
       return { ok: true };
     }
+    // 购买塔罗牌：放入消耗牌槽位
+    buyTarot(idx) {
+      const s = this.state;
+      const item = s.shopTarots[idx];
+      if (!item || item.sold) return { ok: false };
+      if (s.money < item.tarot.price) return { ok: false, reason: "money" };
+      if (s.consumables.length >= CONFIG.MAX_CONSUMABLES) return { ok: false, reason: "full" };
+      s.money -= item.tarot.price;
+      s.consumables.push(item.tarot);
+      item.sold = true;
+      this._log(`🛒 购买塔罗牌【${item.tarot.name}】 -$${item.tarot.price}`, "buy");
+      this.emit("change");
+      return { ok: true };
+    }
     reroll() {
       const s = this.state;
       if (s.money < CONFIG.REROLL_COST) return { ok: false };
       s.money -= CONFIG.REROLL_COST;
       s.shopItems = this.rollShop();
       s.shopPlanets = this.rollPlanets();
+      s.shopTarots = this.rollTarots();
       this._log(`🔄 刷新商店 -$${CONFIG.REROLL_COST}`, "info");
       this.emit("change");
       return { ok: true };
     }
 
-    // ---------- 消耗牌（行星）使用 ----------
-    // 使用持有的消耗牌（按 consumables 下标）。行星牌 → 升级对应牌型。
-    useConsumable(idx) {
+    // ---------- 消耗牌使用 ----------
+    // 行星牌 → 升级牌型；塔罗牌 → 改造选中的手牌（selectedCardIds）。
+    useConsumable(idx, selectedCardIds) {
       const s = this.state;
       const c = s.consumables[idx];
       if (!c) return { ok: false };
+
       if (c.kind === "planet") {
         this.levelUpHand(c.target);
         s.consumables.splice(idx, 1);
         this.emit("consumableUsed", { kind: "planet", target: c.target });
         this.emit("change");
         return { ok: true, kind: "planet", target: c.target };
+      }
+
+      if (c.kind === "tarot") {
+        const [min, max] = c.needCards || [0, 0];
+        const ids = selectedCardIds || [];
+        // 需要选牌但数量不符 → 要求外层进入选牌模式
+        if (max > 0) {
+          if (ids.length < min || ids.length > max) {
+            return { ok: false, reason: "needSelect", min, max, name: c.name, desc: c.desc };
+          }
+        }
+        const chosen = s.hand.filter((card) => ids.includes(card.id));
+        const note = c.apply(chosen, s) || "";
+        s.consumables.splice(idx, 1);
+        this.emit("consumableUsed", { kind: "tarot", name: c.name, note, cardIds: ids });
+        this._log(`🔮 使用塔罗牌【${c.name}】 ${note}`, "good");
+        this.emit("change");
+        return { ok: true, kind: "tarot", name: c.name, note };
       }
       return { ok: false };
     }

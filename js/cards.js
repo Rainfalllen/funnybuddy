@@ -56,6 +56,42 @@ function getHandStats(typeKey, levels) {
   };
 }
 
+/* ------------------------------------------------------------
+ * 扑克牌增强（Enhancement）：改变单张牌的计分行为
+ * ------------------------------------------------------------ */
+const ENHANCEMENTS = {
+  none:   { key: "none",   name: "普通",   badge: "" },
+  bonus:  { key: "bonus",  name: "加成牌", badge: "🔵", chips: 30, desc: "计分时 +30 筹码" },
+  mult:   { key: "mult",   name: "倍率牌", badge: "🔴", mult: 4,   desc: "计分时 +4 倍率" },
+  wild:   { key: "wild",   name: "百搭牌", badge: "🌈", desc: "视为任意花色" },
+  glass:  { key: "glass",  name: "玻璃牌", badge: "💎", xmult: 2, breakChance: 0.25, desc: "×2 倍率，计分后 25% 概率碎裂" },
+  steel:  { key: "steel",  name: "钢铁牌", badge: "⚙️", heldXmult: 1.5, desc: "留在手牌时 ×1.5 倍率" },
+  stone:  { key: "stone",  name: "石头牌", badge: "🪨", chips: 50, noRankSuit: true, desc: "+50 筹码，无点数无花色（始终计分）" },
+  gold:   { key: "gold",   name: "黄金牌", badge: "🟡", endMoney: 3, desc: "回合结束时若留在手牌 +$3" },
+  lucky:  { key: "lucky",  name: "幸运牌", badge: "🍀", desc: "计分时 1/5 概率 +20 倍率，1/15 概率 +$20" },
+};
+
+/* ------------------------------------------------------------
+ * 卡牌版本（Edition）：可叠加在扑克牌/小丑牌上
+ * ------------------------------------------------------------ */
+const EDITIONS = {
+  none:         { key: "none",         name: "普通" },
+  foil:         { key: "foil",         name: "闪箔",   chips: 50, desc: "+50 筹码" },
+  holographic:  { key: "holographic",  name: "全息",   mult: 10, desc: "+10 倍率" },
+  polychrome:   { key: "polychrome",   name: "多彩",   xmult: 1.5, desc: "×1.5 倍率" },
+  negative:     { key: "negative",     name: "负片",   jokerSlot: 1, desc: "小丑牌不占用栏位（仅小丑）" },
+};
+
+/* ------------------------------------------------------------
+ * 蜡封（Seal）
+ * ------------------------------------------------------------ */
+const SEALS = {
+  none: { key: "none", name: "无", color: "" },
+  gold: { key: "gold", name: "金封", color: "#ffd54a", desc: "计分后 +$3" },
+  red:  { key: "red",  name: "红封", color: "#e44b4b", desc: "重复触发本张牌一次" },
+  blue: { key: "blue", name: "蓝封", color: "#4aa3e4", desc: "回合结束若留在手牌，生成对应行星牌" },
+};
+
 let uidCounter = 0;
 function makeCard(suit, rankObj) {
   return {
@@ -67,6 +103,9 @@ function makeCard(suit, rankObj) {
     rank: rankObj.rank,
     label: rankObj.label,
     chips: rankObj.chips,
+    enhancement: "none", // ENHANCEMENTS key
+    edition: "none",     // EDITIONS key
+    seal: "none",        // SEALS key
   };
 }
 
@@ -98,14 +137,28 @@ function shuffle(arr) {
 function evaluateHand(cards) {
   if (!cards.length) return null;
 
-  const ranks = cards.map((c) => c.rank);
+  // 石头牌不参与点数/花色统计（但仍是一张牌、始终计分）
+  const isStone = (c) => c.enhancement === "stone";
+  const isWild = (c) => c.enhancement === "wild";
+  const rankCards = cards.filter((c) => !isStone(c));
+
+  const ranks = rankCards.map((c) => c.rank);
   const counts = {};
   for (const r of ranks) counts[r] = (counts[r] || 0) + 1;
   const countValues = Object.values(counts).sort((a, b) => b - a);
 
-  const isFlush = cards.length === 5 && cards.every((c) => c.suit === cards[0].suit);
+  // 同花：所有非石头牌花色一致；百搭牌可算作任意花色
+  const flushCheck = () => {
+    if (cards.length !== 5) return false;
+    const nonStone = cards.filter((c) => !isStone(c));
+    if (nonStone.length < 5) return false; // 有石头牌则无法凑 5 张同花
+    const nonWild = nonStone.filter((c) => !isWild(c));
+    if (!nonWild.length) return true; // 全是百搭
+    return nonWild.every((c) => c.suit === nonWild[0].suit);
+  };
+  const isFlush = flushCheck();
   const straightInfo = checkStraight(ranks);
-  const isStraight = cards.length === 5 && straightInfo.ok;
+  const isStraight = cards.length === 5 && rankCards.length === 5 && straightInfo.ok;
 
   // 工具：取出现 n 次的所有牌（按计数分组）
   const groupByCount = (n) => {
@@ -146,9 +199,20 @@ function evaluateHand(cards) {
     scoringCards = groupByCount(2);
   } else {
     typeKey = "HIGH_CARD";
-    // 高牌只计最大的一张
-    const maxRank = Math.max(...ranks);
-    scoringCards = [cards.find((c) => c.rank === maxRank)];
+    // 高牌只计最大的一张（忽略石头牌）
+    if (ranks.length) {
+      const maxRank = Math.max(...ranks);
+      scoringCards = [rankCards.find((c) => c.rank === maxRank)];
+    } else {
+      scoringCards = [];
+    }
+  }
+
+  // 石头牌始终计分：补进 scoringCards（去重）
+  const stoneCards = cards.filter(isStone);
+  if (stoneCards.length) {
+    const setIds = new Set(scoringCards.map((c) => c.id));
+    for (const sc of stoneCards) if (!setIds.has(sc.id)) scoringCards.push(sc);
   }
 
   return { typeKey, scoringCards };
@@ -172,6 +236,9 @@ window.Cards = {
   SUITS,
   RANKS,
   HAND_TYPES,
+  ENHANCEMENTS,
+  EDITIONS,
+  SEALS,
   getHandStats,
   buildDeck,
   shuffle,

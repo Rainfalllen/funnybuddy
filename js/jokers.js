@@ -228,6 +228,84 @@ const JOKER_POOL = [
       if (v) { ctx.mult += v; return true; }
     },
   },
+
+  // ---------- 倍率乘区（xmult）小丑牌 ----------
+  {
+    id: "joker_stencil", name: "小丑模板", face: "🃏", price: 8, rarity: "uncommon",
+    desc: "每有 <b>1</b> 个空小丑栏位 <b>×1</b> 倍率（基于上限5）",
+    effect: (ctx) => {
+      const empty = 5 - ctx.game.jokers.length;
+      if (empty > 0) { ctx.xmult *= (1 + empty); return true; }
+    },
+  },
+  {
+    id: "blackboard", name: "黑板", face: "⬛", price: 7, rarity: "uncommon",
+    desc: "若所有计分牌均为 <b>黑桃/梅花</b>，<b>×3</b> 倍率",
+    effect: (ctx) => {
+      const all = ctx.scoringCards.length > 0 &&
+        ctx.scoringCards.every((c) => c.suit === "S" || c.suit === "C" || c.enhancement === "wild");
+      if (all) { ctx.xmult *= 3; return true; }
+    },
+  },
+  {
+    id: "the_duo", name: "二重奏", face: "✌️", price: 8, rarity: "rare",
+    desc: "打出的牌含 <b>对子</b> 时 <b>×2</b> 倍率",
+    effect: (ctx) => {
+      if (handContains(ctx.handTypeKey, "PAIR")) { ctx.xmult *= 2; return true; }
+    },
+  },
+  {
+    id: "the_trio", name: "三重奏", face: "🎵", price: 9, rarity: "rare",
+    desc: "打出的牌含 <b>三条</b> 时 <b>×3</b> 倍率",
+    effect: (ctx) => {
+      if (handContains(ctx.handTypeKey, "THREE")) { ctx.xmult *= 3; return true; }
+    },
+  },
+  {
+    id: "the_family", name: "家族", face: "👨‍👩‍👧", price: 10, rarity: "rare",
+    desc: "打出的牌含 <b>四条</b> 时 <b>×4</b> 倍率",
+    effect: (ctx) => {
+      if (handContains(ctx.handTypeKey, "THREE") && ctx.handTypeKey === "FOUR_KIND") { ctx.xmult *= 4; return true; }
+      if (ctx.handTypeKey === "FOUR_KIND" || ctx.handTypeKey === "FIVE_KIND") { ctx.xmult *= 4; return true; }
+    },
+  },
+  {
+    id: "cavendish", name: "卡文迪什", face: "🍌", price: 6, rarity: "uncommon",
+    desc: "<b>×3</b> 倍率",
+    effect: (ctx) => { ctx.xmult *= 3; return true; },
+  },
+  {
+    id: "baron", name: "男爵", face: "🤵", price: 8, rarity: "rare",
+    desc: "手牌中每张 <b>K</b> <b>×1.5</b> 倍率",
+    effect: (ctx) => {
+      const n = (ctx.game.hand || []).filter((c) => c.rank === 13).length;
+      if (n) { ctx.xmult *= Math.pow(1.5, n); return true; }
+    },
+  },
+  {
+    id: "blueprint", name: "蓝图", face: "📐", price: 10, rarity: "rare",
+    desc: "复制 <b>右侧</b> 小丑牌的倍率/筹码效果（简化：+本次已累计倍率的20%）",
+    effect: (ctx) => {
+      const add = Math.floor((ctx.mult - 0) * 0.2);
+      if (add > 0) { ctx.mult += add; return true; }
+    },
+  },
+
+  // ---------- 增强联动 ----------
+  {
+    id: "golden", name: "金券", face: "💲", price: 6, rarity: "common",
+    desc: "回合结束 <b>+$4</b>（由游戏结算）",
+    effect: () => false, // 被动收益，在 winRound 结算
+    passiveMoney: 4,
+  },
+  {
+    id: "hologram", name: "全息图", face: "📀", price: 7, rarity: "uncommon",
+    desc: "每张计分的 <b>含特殊版本/增强</b> 的牌 <b>+15</b> 筹码",
+    effect: (ctx) => {
+      const n = ctx.scoringCards.filter((c) => (c.edition && c.edition !== "none") || (c.enhancement && c.enhancement !== "none")).length;
+      if (n) { ctx.chips += 15 * n; return true; }
+    },
+  },
 ];
 
 function getJokerById(id) {
