@@ -448,6 +448,19 @@ body::before {
   100% { background-position: -40% 0; opacity: 0; }
 }
 
+/* 卖出动画：金色光环 + 上升旋转飞走 + 淡出 */
+.joker.selling {
+  animation: jokerSell .52s cubic-bezier(.4, .1, .6, 1) forwards;
+  box-shadow: 0 0 0 3px var(--gold), 0 0 32px #ffd54acc, 0 12px 28px #000a;
+  filter: brightness(1.3) saturate(1.4);
+}
+@keyframes jokerSell {
+  0%   { transform: translateY(0) rotate(0) scale(1);     opacity: 1; }
+  20%  { transform: translateY(-22px) rotate(-8deg) scale(1.12); opacity: 1; }
+  60%  { transform: translateY(-90px) rotate(12deg) scale(.95);  opacity: .8; }
+  100% { transform: translateY(-180px) rotate(28deg) scale(.6); opacity: 0; }
+}
+
 /* 触发时附加的金色光环（DOM 动态加入） */
 .joker .joker-ring {
   position: absolute;

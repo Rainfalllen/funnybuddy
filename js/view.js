@@ -156,39 +156,34 @@
         <div class="tip"><b>${j.name}</b><br>${j.desc}</div>
       `;
       if (idx >= 0) {
-        // 触屏：单击切换 tooltip 显示，长按（>500ms）出售；
-        // 鼠标：单击直接出售（hover 已可显示 tip）。
+        // 局内（牌桌区）小丑牌：无需 confirm，直接卖出并播放动画。
+        // - 鼠标：单击 = 卖出（hover 已可看完整说明）。
+        // - 触屏：单击 = 切换 tip；双击 = 卖出。
         const isTouchEnv = window.matchMedia("(hover: none)").matches;
+        const sell = () => {
+          const value = Math.max(1, Math.floor(j.price / 2));
+          this.animateSellJoker(node, value).then(() => {
+            this.handlers.onSellJoker(idx);
+          });
+        };
         if (isTouchEnv) {
-          let pressTimer = null;
-          let longPressed = false;
-          const start = (e) => {
-            longPressed = false;
-            pressTimer = setTimeout(() => {
-              longPressed = true;
-              if (confirm(`确定卖出「${j.name}」获得 $${Math.max(1, Math.floor(j.price / 2))}？`)) {
-                this.handlers.onSellJoker(idx);
-              }
-            }, 550);
-          };
-          const cancel = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
-          node.addEventListener("touchstart", start, { passive: true });
-          node.addEventListener("touchend", cancel);
-          node.addEventListener("touchmove", cancel);
-          node.addEventListener("touchcancel", cancel);
+          let lastTap = 0;
           node.addEventListener("click", (e) => {
-            if (longPressed) { e.preventDefault(); return; }
-            // 关闭其他已展开的 tip
-            document.querySelectorAll(".joker.show-tip").forEach((n) => { if (n !== node) n.classList.remove("show-tip"); });
-            node.classList.toggle("show-tip");
+            const now = Date.now();
+            if (now - lastTap < 320) {
+              // 双击 → 卖出
+              lastTap = 0;
+              document.querySelectorAll(".joker.show-tip").forEach((n) => n.classList.remove("show-tip"));
+              sell();
+            } else {
+              // 单击 → 切 tip
+              lastTap = now;
+              document.querySelectorAll(".joker.show-tip").forEach((n) => { if (n !== node) n.classList.remove("show-tip"); });
+              node.classList.toggle("show-tip");
+            }
           });
         } else {
-          node.onclick = () => {
-            const value = Math.max(1, Math.floor(j.price / 2));
-            if (confirm(`卖出「${j.name}」获得 $${value}？`)) {
-              this.handlers.onSellJoker(idx);
-            }
-          };
+          node.onclick = () => sell();
         }
       } else {
         // 商店里小丑牌（idx<0）：触屏单击切换 tip，方便看说明
@@ -599,6 +594,42 @@
         this.el.fxLayer.appendChild(p);
         setTimeout(() => p.remove(), 700);
       }
+    }
+
+    // 卖出小丑牌动画：参考小丑触发效果——金色光环爆发 + 上升旋转飞走 + 金币粒子 + +$N 飘字
+    // 返回 Promise，动画播完才 resolve，让控制层在动画结束后再真正从数据里移除该牌。
+    animateSellJoker(node, value) {
+      return new Promise((resolve) => {
+        // 1) 金色光环
+        const ring = document.createElement("div");
+        ring.className = "joker-ring";
+        node.appendChild(ring);
+        // 2) 金色粒子（两轮，密一些更"炸"）
+        this.burst(node, "#ffd54a", 18);
+        setTimeout(() => this.burst(node, "#ffe98a", 10), 80);
+        // 3) +$N 飘字（用现成的 money 飘字色）
+        this._floaterAt(node, "+$" + value, "money", -10);
+        // 4) 卡牌本身：脱离布局，原地飞起旋转淡出
+        const r = node.getBoundingClientRect();
+        // 锁定原始尺寸与位置，避免 flex 重排导致动画错位
+        node.style.position = "fixed";
+        node.style.left = r.left + "px";
+        node.style.top = r.top + "px";
+        node.style.width = r.width + "px";
+        node.style.height = r.height + "px";
+        node.style.margin = "0";
+        node.style.zIndex = "210";
+        node.style.pointerEvents = "none";
+        // 触发 CSS 动画
+        node.classList.add("selling");
+        // 闪光 + 轻微震动反馈
+        this.flash("gold");
+        // 5) 动画结束后清理并 resolve（让控制层 commit 卖出）
+        setTimeout(() => {
+          ring.remove();
+          resolve();
+        }, 520);
+      });
     }
   }
 
