@@ -143,50 +143,54 @@
         return h;
       })();
       node.style.setProperty("--joker-hue", hue);
+      const sellValue = Math.max(1, Math.floor(j.price / 2));
+      // idx >= 0 表示是局内（牌桌区）持有的小丑牌，需要 × 卖出按钮
+      const sellBtnHtml = idx >= 0 ? `<button class="joker-x" title="卖出 +$${sellValue}" aria-label="卖出">×</button>` : "";
       node.innerHTML = `
         <div class="joker-holo"></div>
         <div class="joker-shine"></div>
+        ${sellBtnHtml}
         <div class="joker-face">${j.face}</div>
         <div class="joker-name">${j.name}</div>
         <div class="joker-effect">${j.desc}</div>
-        <div class="joker-sell">$${Math.max(1, Math.floor(j.price / 2))}</div>
+        <div class="joker-sell">$${sellValue}</div>
         <div class="joker-rarity-badge">${
           rarity === "uncommon" ? "稀有" : rarity === "rare" ? "罕见" : rarity === "legendary" ? "传说" : "普通"
         }</div>
         <div class="tip"><b>${j.name}</b><br>${j.desc}</div>
       `;
+
       if (idx >= 0) {
-        // 局内（牌桌区）小丑牌：无需 confirm，直接卖出并播放动画。
-        // - 鼠标：单击 = 卖出（hover 已可看完整说明）。
-        // - 触屏：单击 = 切换 tip；双击 = 卖出。
-        const isTouchEnv = window.matchMedia("(hover: none)").matches;
+        // 局内卖牌：无 confirm，直接卖出并播放动画
         const sell = () => {
-          const value = Math.max(1, Math.floor(j.price / 2));
-          this.animateSellJoker(node, value).then(() => {
+          this.animateSellJoker(node, sellValue).then(() => {
             this.handlers.onSellJoker(idx);
           });
         };
+        // × 按钮：任何端点击都直接卖出（阻止冒泡，避免触发牌面其它逻辑）
+        const xBtn = node.querySelector(".joker-x");
+        if (xBtn) {
+          xBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            sell();
+          });
+          // 触屏上 touchstart 同样要阻断冒泡，避免触发 hover/tip
+          xBtn.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+        }
+
+        const isTouchEnv = window.matchMedia("(hover: none)").matches;
         if (isTouchEnv) {
-          let lastTap = 0;
-          node.addEventListener("click", (e) => {
-            const now = Date.now();
-            if (now - lastTap < 320) {
-              // 双击 → 卖出
-              lastTap = 0;
-              document.querySelectorAll(".joker.show-tip").forEach((n) => n.classList.remove("show-tip"));
-              sell();
-            } else {
-              // 单击 → 切 tip
-              lastTap = now;
-              document.querySelectorAll(".joker.show-tip").forEach((n) => { if (n !== node) n.classList.remove("show-tip"); });
-              node.classList.toggle("show-tip");
-            }
+          // 触屏：单击牌面只切换 tip，卖出走 × 按钮
+          node.addEventListener("click", () => {
+            document.querySelectorAll(".joker.show-tip").forEach((n) => { if (n !== node) n.classList.remove("show-tip"); });
+            node.classList.toggle("show-tip");
           });
         } else {
+          // 鼠标：单击牌面直接卖出（hover 即可看完整说明）
           node.onclick = () => sell();
         }
       } else {
-        // 商店里小丑牌（idx<0）：触屏单击切换 tip，方便看说明
+        // 商店里小丑牌（idx<0）：触屏单击切换 tip
         const isTouchEnv = window.matchMedia("(hover: none)").matches;
         if (isTouchEnv) {
           node.addEventListener("click", () => {
@@ -427,9 +431,10 @@
         sell.textContent = `卖出 +$${value}`;
         sell.onclick = (ev) => {
           ev.stopPropagation();
-          if (confirm(`卖出「${j.name}」获得 $${value}？`)) {
+          // 复用小丑触发风格的卖牌动画（无 confirm）
+          this.animateSellJoker(jokerEl, value).then(() => {
             this.handlers.onSellJoker(idx);
-          }
+          });
         };
         wrap.appendChild(sell);
 
@@ -596,39 +601,84 @@
       }
     }
 
-    // 卖出小丑牌动画：参考小丑触发效果——金色光环爆发 + 上升旋转飞走 + 金币粒子 + +$N 飘字
+    // 卖出小丑牌动画：碎片炸开 + 金色光环 + 金币粒子 + +$N 飘字 + 闪光 + 金币音效
     // 返回 Promise，动画播完才 resolve，让控制层在动画结束后再真正从数据里移除该牌。
     animateSellJoker(node, value) {
       return new Promise((resolve) => {
-        // 1) 金色光环
-        const ring = document.createElement("div");
-        ring.className = "joker-ring";
-        node.appendChild(ring);
-        // 2) 金色粒子（两轮，密一些更"炸"）
-        this.burst(node, "#ffd54a", 18);
-        setTimeout(() => this.burst(node, "#ffe98a", 10), 80);
-        // 3) +$N 飘字（用现成的 money 飘字色）
-        this._floaterAt(node, "+$" + value, "money", -10);
-        // 4) 卡牌本身：脱离布局，原地飞起旋转淡出
         const r = node.getBoundingClientRect();
-        // 锁定原始尺寸与位置，避免 flex 重排导致动画错位
-        node.style.position = "fixed";
-        node.style.left = r.left + "px";
-        node.style.top = r.top + "px";
-        node.style.width = r.width + "px";
-        node.style.height = r.height + "px";
-        node.style.margin = "0";
-        node.style.zIndex = "210";
-        node.style.pointerEvents = "none";
-        // 触发 CSS 动画
-        node.classList.add("selling");
-        // 闪光 + 轻微震动反馈
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+
+        // 1) 音效 + 闪光 + 金币粒子两轮
+        if (window.SFX) window.SFX.coin();
         this.flash("gold");
-        // 5) 动画结束后清理并 resolve（让控制层 commit 卖出）
-        setTimeout(() => {
-          ring.remove();
-          resolve();
-        }, 520);
+        this.burst(node, "#ffd54a", 18);
+        setTimeout(() => this.burst(node, "#ffe98a", 12), 80);
+        // 2) +$N 飘字
+        this._floaterAt(node, "+$" + value, "money", -10);
+
+        // 3) 把原牌临时隐藏，原位置生成碎片
+        node.style.visibility = "hidden";
+        node.style.pointerEvents = "none";
+
+        // 4) 生成碎片：用 SVG 切多边形碎块，每块都是原牌的克隆但用 clip-path 显示一块
+        const SHARDS = [
+          // 多边形碎片 clip-path（百分比坐标），覆盖整张牌
+          "polygon(0% 0%, 50% 0%, 30% 50%, 0% 60%)",
+          "polygon(50% 0%, 100% 0%, 100% 45%, 60% 35%, 30% 50%)",
+          "polygon(0% 60%, 30% 50%, 45% 100%, 0% 100%)",
+          "polygon(30% 50%, 60% 35%, 70% 70%, 45% 100%)",
+          "polygon(60% 35%, 100% 45%, 100% 75%, 70% 70%)",
+          "polygon(45% 100%, 70% 70%, 100% 75%, 100% 100%)",
+          "polygon(0% 0%, 30% 25%, 0% 40%)",
+          "polygon(70% 0%, 100% 0%, 100% 30%, 80% 20%)",
+        ];
+
+        SHARDS.forEach((clip, i) => {
+          // 克隆原牌，作为碎片底图
+          const shard = node.cloneNode(true);
+          shard.classList.remove("selling", "show-tip", "joker-enter");
+          // 去掉碎片里的 × 按钮、tip、ring 等交互元素
+          shard.querySelectorAll(".joker-x, .tip, .joker-ring").forEach((n) => n.remove());
+          shard.style.position = "fixed";
+          shard.style.left = r.left + "px";
+          shard.style.top = r.top + "px";
+          shard.style.width = r.width + "px";
+          shard.style.height = r.height + "px";
+          shard.style.margin = "0";
+          shard.style.zIndex = "215";
+          shard.style.pointerEvents = "none";
+          shard.style.clipPath = clip;
+          shard.style.webkitClipPath = clip;
+          shard.style.filter = "brightness(1.25) saturate(1.3) drop-shadow(0 0 8px #ffd54aaa)";
+          shard.classList.add("joker-shard");
+
+          // 飞散方向：以牌中心为原点，给每块一个朝外的随机向量
+          const ang = (Math.PI * 2 * i) / SHARDS.length + (Math.random() - 0.5) * 0.6;
+          const dist = 120 + Math.random() * 120;
+          const dx = Math.cos(ang) * dist;
+          const dy = Math.sin(ang) * dist - 30; // 略上扬
+          const rot = (Math.random() - 0.5) * 720; // 旋转角度
+          shard.style.setProperty("--sx", dx + "px");
+          shard.style.setProperty("--sy", dy + "px");
+          shard.style.setProperty("--srot", rot + "deg");
+          // 重力让后半段往下掉
+          shard.style.setProperty("--sy2", (dy + 220) + "px");
+
+          this.el.fxLayer.appendChild(shard);
+          setTimeout(() => shard.remove(), 720);
+        });
+
+        // 5) 中心爆炸光圈
+        const flash = document.createElement("div");
+        flash.className = "joker-explode-ring";
+        flash.style.left = cx + "px";
+        flash.style.top = cy + "px";
+        this.el.fxLayer.appendChild(flash);
+        setTimeout(() => flash.remove(), 600);
+
+        // 6) 动画结束后 resolve（让 core 移除该牌、view 重新渲染）
+        setTimeout(() => resolve(), 520);
       });
     }
   }

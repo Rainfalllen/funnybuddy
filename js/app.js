@@ -51,7 +51,9 @@
     },
     onBuyJoker: (idx) => {
       const res = core.buyJoker(idx);
-      if (!res.ok && res.reason === "full") {
+      if (res && res.ok) {
+        if (window.SFX) window.SFX.buy();
+      } else if (!res.ok && res.reason === "full") {
         alert("小丑牌已满（上限 " + core.CONFIG.MAX_JOKERS + " 张），请先卖出。");
       }
       view.renderShop();
