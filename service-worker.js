@@ -5,7 +5,7 @@
  *   - 其它请求走 network-first，失败回退缓存（兜底）。
  *   - 升级 CACHE_VERSION 即可强制刷新。
  * ============================================================ */
-const CACHE_VERSION = "funnybuddy-v4";
+const CACHE_VERSION = "funnybuddy-v5";
 const PRECACHE_URLS = [
   "./",
   "./index.html",
@@ -14,6 +14,7 @@ const PRECACHE_URLS = [
   "./js/sfx.js",
   "./js/cards.js",
   "./js/jokers.js",
+  "./js/planets.js",
   "./js/core.js",
   "./js/view.js",
   "./js/app.js",

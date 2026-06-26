@@ -62,6 +62,30 @@
       core.reorderJokers(from, to);
       if (!isShopHidden()) view.renderShop();
     },
+    onUseConsumable: (idx) => {
+      if (busy) return;
+      const res = core.useConsumable(idx);
+      if (res && res.ok && window.SFX) window.SFX.buy();
+      if (!isShopHidden()) view.renderShop();
+    },
+    onSellConsumable: (idx) => {
+      if (busy) return;
+      const s = core.getState();
+      const c = s.consumables[idx];
+      if (!c) return;
+      core.sellConsumable(idx);
+      if (window.SFX) window.SFX.coin();
+      if (!isShopHidden()) view.renderShop();
+    },
+    onBuyPlanet: (idx) => {
+      const res = core.buyPlanet(idx);
+      if (res && res.ok) {
+        if (window.SFX) window.SFX.buy();
+      } else if (!res.ok && res.reason === "full") {
+        alert("消耗牌已满（上限 " + core.CONFIG.MAX_CONSUMABLES + " 张），请先使用或卖出。");
+      }
+      view.renderShop();
+    },
     onReroll: () => { core.reroll(); view.renderShop(); },
     onNextRound: () => {
       view.hideShop();
@@ -127,6 +151,15 @@
   core.on("shopOpen", () => {
     if (!shopOpenedFrom) shopOpenedFrom = "roundWin";
     view.showShop();
+  });
+
+  // 使用行星牌：金色闪光 + 牌型升级提示飘字
+  core.on("consumableUsed", (data) => {
+    view.flash("gold");
+    if (data && data.kind === "planet" && window.Cards) {
+      const name = (window.Cards.HAND_TYPES[data.target] || {}).name || "";
+      view.toastCenter("🪐 " + name + " 升级！");
+    }
   });
 
   core.on("gameWin", (data) => { view.flash("gold"); view.showWin(data); });

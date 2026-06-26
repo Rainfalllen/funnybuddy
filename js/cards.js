@@ -27,19 +27,34 @@ const RANKS = [
   { rank: 14, label: "A", chips: 11 },
 ];
 
-// 牌型基础分（chips 基础筹码，mult 基础倍率）。level 可在游戏中升级。
+// 牌型基础分（chips 基础筹码，mult 基础倍率）。
+// perLevel: 每升一级增加的 { chips, mult }（参考 Balatro 行星牌数值风格）。
 const HAND_TYPES = {
-  HIGH_CARD:      { name: "高牌",   chips: 5,   mult: 1 },
-  PAIR:           { name: "对子",   chips: 10,  mult: 2 },
-  TWO_PAIR:       { name: "两对",   chips: 20,  mult: 2 },
-  THREE_KIND:     { name: "三条",   chips: 30,  mult: 3 },
-  STRAIGHT:       { name: "顺子",   chips: 30,  mult: 4 },
-  FLUSH:          { name: "同花",   chips: 35,  mult: 4 },
-  FULL_HOUSE:     { name: "葫芦",   chips: 40,  mult: 4 },
-  FOUR_KIND:      { name: "四条",   chips: 60,  mult: 7 },
-  STRAIGHT_FLUSH: { name: "同花顺", chips: 100, mult: 8 },
-  FIVE_KIND:      { name: "五条",   chips: 120, mult: 12 },
+  HIGH_CARD:      { name: "高牌",   chips: 5,   mult: 1,  perLevel: { chips: 10, mult: 1 } },
+  PAIR:           { name: "对子",   chips: 10,  mult: 2,  perLevel: { chips: 15, mult: 1 } },
+  TWO_PAIR:       { name: "两对",   chips: 20,  mult: 2,  perLevel: { chips: 20, mult: 1 } },
+  THREE_KIND:     { name: "三条",   chips: 30,  mult: 3,  perLevel: { chips: 20, mult: 2 } },
+  STRAIGHT:       { name: "顺子",   chips: 30,  mult: 4,  perLevel: { chips: 30, mult: 3 } },
+  FLUSH:          { name: "同花",   chips: 35,  mult: 4,  perLevel: { chips: 15, mult: 2 } },
+  FULL_HOUSE:     { name: "葫芦",   chips: 40,  mult: 4,  perLevel: { chips: 25, mult: 2 } },
+  FOUR_KIND:      { name: "四条",   chips: 60,  mult: 7,  perLevel: { chips: 30, mult: 3 } },
+  STRAIGHT_FLUSH: { name: "同花顺", chips: 100, mult: 8,  perLevel: { chips: 40, mult: 4 } },
+  FIVE_KIND:      { name: "五条",   chips: 120, mult: 12, perLevel: { chips: 35, mult: 3 } },
 };
+
+// 根据等级计算牌型的实际 chips/mult。level 从 1 开始（1 级 = 基础值）。
+// levels 为 { typeKey: level } 映射（缺省视为 1 级）。
+function getHandStats(typeKey, levels) {
+  const base = HAND_TYPES[typeKey];
+  const lvl = Math.max(1, (levels && levels[typeKey]) || 1);
+  const inc = lvl - 1;
+  return {
+    name: base.name,
+    level: lvl,
+    chips: base.chips + base.perLevel.chips * inc,
+    mult: base.mult + base.perLevel.mult * inc,
+  };
+}
 
 let uidCounter = 0;
 function makeCard(suit, rankObj) {
@@ -157,6 +172,7 @@ window.Cards = {
   SUITS,
   RANKS,
   HAND_TYPES,
+  getHandStats,
   buildDeck,
   shuffle,
   evaluateHand,

@@ -5,8 +5,9 @@
  * 通过方法接收外界（控制层）的操作指令。
  * ============================================================ */
 (function () {
-  const { HAND_TYPES, buildDeck, shuffle, evaluateHand } = window.Cards;
+  const { HAND_TYPES, getHandStats, buildDeck, shuffle, evaluateHand } = window.Cards;
   const { JOKER_POOL } = window.Jokers;
+  const { PLANET_POOL } = window.Planets;
 
   // ---------- 规则常量 ----------
   const CONFIG = {
@@ -20,6 +21,7 @@
     MAX_HANDS: 4,
     MAX_DISCARDS: 3,
     MAX_JOKERS: 5,
+    MAX_CONSUMABLES: 2, // 消耗牌（行星/塔罗）持有上限
     TOTAL_ANTE: 8,
     REROLL_COST: 5,
   };
@@ -59,6 +61,8 @@
         hand: [],
         selected: new Set(),
         jokers: [],
+        consumables: [],          // 持有的消耗牌（行星/塔罗）
+        handLevels: {},           // { 牌型key: 等级 }，缺省视为 1 级
         money: 4,
         ante: 1,
         blindIndex: 0,
@@ -70,6 +74,7 @@
         handTypePlays: {},
         rideCounter: 0,
         shopItems: [],
+        shopPlanets: [],          // 商店出售的行星牌
       };
       this._log("🎴 新游戏开始，祝你好运！", "good");
       this.startBlindSelect();
@@ -82,6 +87,9 @@
       return {
         hand: s.hand,
         jokers: s.jokers,
+        consumables: s.consumables,
+        maxConsumables: CONFIG.MAX_CONSUMABLES,
+        handLevels: s.handLevels,
         selected: s.selected,
         deckCount: s.deck.length,
         money: s.money,
@@ -97,16 +105,17 @@
         blindReward: b.reward,
         blindKey: b.key,
         shopItems: s.shopItems,
+        shopPlanets: s.shopPlanets,
       };
     }
 
-    // 当前所选牌组成的牌型预览（不修改状态）
+    // 当前所选牌组成的牌型预览（不修改状态）—— 含等级
     getHandPreview() {
       const sel = this.getSelectedCards();
       if (!sel.length) return null;
       const res = evaluateHand(sel);
-      const ht = HAND_TYPES[res.typeKey];
-      return { name: ht.name, baseChips: ht.chips, baseMult: ht.mult };
+      const st = getHandStats(res.typeKey, this.state.handLevels);
+      return { name: st.name, baseChips: st.chips, baseMult: st.mult, level: st.level };
     }
 
     currentBlind() { return CONFIG.BLINDS[this.state.blindIndex]; }
@@ -198,7 +207,7 @@
       s.selected.clear();
 
       const res = evaluateHand(played);
-      const ht = HAND_TYPES[res.typeKey];
+      const st = getHandStats(res.typeKey, s.handLevels); // 含等级的实际 chips/mult
       const scoringIds = new Set(res.scoringCards.map((c) => c.id));
 
       // 牌型打出次数（含本次，供 supernova）
@@ -209,8 +218,8 @@
 
       // 收集计分步骤
       const steps = [];
-      let chips = ht.chips;
-      let mult = ht.mult;
+      let chips = st.chips;
+      let mult = st.mult;
 
       // 1) 参与计分的牌逐张加筹码
       for (const c of played) {
@@ -253,12 +262,12 @@
       else if (s.handsLeft <= 0) outcome = "lose";
 
       return {
-        handType: { key: res.typeKey, name: ht.name },
+        handType: { key: res.typeKey, name: st.name, level: st.level },
         played,
         scoringIds,
         steps,
-        baseChips: ht.chips,
-        baseMult: ht.mult,
+        baseChips: st.chips,
+        baseMult: st.mult,
         finalChips,
         finalMult,
         gained,
@@ -326,9 +335,11 @@
     // 默认 false：如果商店里还有未售出的物品就保留，避免"开关商店当作免费刷新"。
     openShop(reroll = false) {
       const s = this.state;
-      const hasItems = s.shopItems && s.shopItems.some((it) => !it.sold);
+      const hasItems = (s.shopItems && s.shopItems.some((it) => !it.sold)) ||
+                       (s.shopPlanets && s.shopPlanets.some((it) => !it.sold));
       if (reroll || !hasItems) {
         s.shopItems = this.rollShop();
+        s.shopPlanets = this.rollPlanets();
       }
       this.emit("shopOpen");
       this.emit("change");
@@ -339,6 +350,13 @@
       shuffle(pool);
       const n = Math.min(2, pool.length) + (Math.random() < 0.5 ? 1 : 0);
       return pool.slice(0, Math.min(n, pool.length)).map((j) => ({ joker: j, sold: false }));
+    }
+    // 滚动出售的行星牌（1~2 张）
+    rollPlanets() {
+      const pool = PLANET_POOL.slice();
+      shuffle(pool);
+      const n = 1 + (Math.random() < 0.5 ? 1 : 0);
+      return pool.slice(0, n).map((p) => ({ planet: p, sold: false }));
     }
     buyJoker(idx) {
       const s = this.state;
@@ -353,14 +371,65 @@
       this.emit("change");
       return { ok: true };
     }
+    // 购买行星牌：放入消耗牌槽位（不会自动使用，需玩家在局内/商店点击使用）
+    buyPlanet(idx) {
+      const s = this.state;
+      const item = s.shopPlanets[idx];
+      if (!item || item.sold) return { ok: false };
+      if (s.money < item.planet.price) return { ok: false, reason: "money" };
+      if (s.consumables.length >= CONFIG.MAX_CONSUMABLES) return { ok: false, reason: "full" };
+      s.money -= item.planet.price;
+      s.consumables.push(item.planet);
+      item.sold = true;
+      this._log(`🛒 购买行星牌【${item.planet.name}】 -$${item.planet.price}`, "buy");
+      this.emit("change");
+      return { ok: true };
+    }
     reroll() {
       const s = this.state;
       if (s.money < CONFIG.REROLL_COST) return { ok: false };
       s.money -= CONFIG.REROLL_COST;
       s.shopItems = this.rollShop();
+      s.shopPlanets = this.rollPlanets();
       this._log(`🔄 刷新商店 -$${CONFIG.REROLL_COST}`, "info");
       this.emit("change");
       return { ok: true };
+    }
+
+    // ---------- 消耗牌（行星）使用 ----------
+    // 使用持有的消耗牌（按 consumables 下标）。行星牌 → 升级对应牌型。
+    useConsumable(idx) {
+      const s = this.state;
+      const c = s.consumables[idx];
+      if (!c) return { ok: false };
+      if (c.kind === "planet") {
+        this.levelUpHand(c.target);
+        s.consumables.splice(idx, 1);
+        this.emit("consumableUsed", { kind: "planet", target: c.target });
+        this.emit("change");
+        return { ok: true, kind: "planet", target: c.target };
+      }
+      return { ok: false };
+    }
+    // 卖出消耗牌（半价）
+    sellConsumable(idx) {
+      const s = this.state;
+      const c = s.consumables[idx];
+      if (!c) return 0;
+      const value = Math.max(1, Math.floor((c.price || 2) / 2));
+      s.consumables.splice(idx, 1);
+      s.money += value;
+      this._log(`💰 卖出【${c.name}】 +$${value}`, "buy");
+      this.emit("change");
+      return value;
+    }
+    // 升级牌型等级
+    levelUpHand(typeKey) {
+      const s = this.state;
+      s.handLevels[typeKey] = (s.handLevels[typeKey] || 1) + 1;
+      const st = getHandStats(typeKey, s.handLevels);
+      this._log(`🪐 牌型【${HAND_TYPES[typeKey].name}】升至 Lv.${st.level}（${st.chips}×${st.mult}）`, "good");
+      return st.level;
     }
     sellJoker(idx) {
       const s = this.state;

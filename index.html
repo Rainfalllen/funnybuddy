@@ -51,10 +51,18 @@
       </div>
     </header>
 
-    <!-- 小丑牌区 -->
+    <!-- 小丑牌区 + 消耗牌区 -->
     <section class="row jokers-row">
-      <div class="row-label">小丑牌 <span id="jokerCount">0/5</span></div>
-      <div id="jokers" class="card-strip jokers"></div>
+      <div class="jokers-consumables">
+        <div class="jokers-col">
+          <div class="row-label">小丑牌 <span id="jokerCount">0/5</span></div>
+          <div id="jokers" class="card-strip jokers"></div>
+        </div>
+        <div class="consumables-col">
+          <div class="row-label">消耗牌 <span id="consumableCount">0/2</span></div>
+          <div id="consumables" class="card-strip consumables"></div>
+        </div>
+      </div>
     </section>
 
     <!-- 当前出牌型展示 -->
@@ -97,6 +105,13 @@
           <span class="hint">点击购买</span>
         </div>
         <div id="shopJokers" class="shop-items"></div>
+      </div>
+
+      <div class="shop-section">
+        <div class="shop-section-title">
+          🪐 行星牌 <span class="hint">升级牌型 · 买入后在「消耗牌」区点击使用</span>
+        </div>
+        <div id="shopPlanets" class="shop-items"></div>
       </div>
 
       <div class="shop-section">
@@ -157,6 +172,7 @@
   <script src="js/sfx.js"></script>
   <script src="js/cards.js"></script>
   <script src="js/jokers.js"></script>
+  <script src="js/planets.js"></script>
   <!-- 逻辑层（不依赖 DOM） -->
   <script src="js/core.js"></script>
   <!-- 表现层（只负责渲染/动画） -->

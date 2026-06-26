@@ -28,6 +28,8 @@
         moneyView: $("moneyView"), handsView: $("handsView"), discardsView: $("discardsView"),
         anteView: $("anteView"), roundView: $("roundView"),
         jokers: $("jokers"), jokerCount: $("jokerCount"),
+        consumables: $("consumables"), consumableCount: $("consumableCount"),
+        shopPlanets: $("shopPlanets"),
         handTypeBanner: $("handTypeBanner"), handTypeName: $("handTypeName"), handTypeLevel: $("handTypeLevel"),
         playArea: $("playArea"), hand: $("hand"), deckCount: $("deckCount"),
         playBtn: $("playBtn"), discardBtn: $("discardBtn"),
@@ -82,6 +84,7 @@
     renderAll() {
       this.renderTopbar();
       this.renderJokers();
+      this.renderConsumables();
       this.renderHand();
       this.renderHandTypePreview();
       this.updateActionButtons();
@@ -214,7 +217,62 @@
       this.el.jokerCount.textContent = s.jokers.length + "/" + s.maxJokers;
     }
 
-    // ---------- 牌型预览 ----------
+    // ---------- 消耗牌节点 ----------
+    _consumableNode(c, idx) {
+      const node = document.createElement("div");
+      node.className = "consumable kind-" + (c.kind || "planet");
+      const target = c.target ? (window.Cards.HAND_TYPES[c.target] || {}).name : "";
+      node.innerHTML = `
+        <div class="cons-face">${c.face}</div>
+        <div class="cons-name">${c.name}</div>
+        <div class="cons-effect">升级<br><b>${target}</b></div>
+        <div class="tip"><b>${c.name}</b><br>使用后升级牌型【${target}】等级<br><span style="color:#9bb0a8">点击使用 · 右键/长按卖出</span></div>
+      `;
+      // 点击使用
+      node.addEventListener("click", () => this.handlers.onUseConsumable(idx));
+      // 右键卖出（桌面）
+      node.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        this.handlers.onSellConsumable(idx);
+      });
+      // 触屏：长按卖出
+      const isTouchEnv = window.matchMedia("(hover: none)").matches;
+      if (isTouchEnv) {
+        let timer = null, longed = false;
+        node.addEventListener("touchstart", () => {
+          longed = false;
+          timer = setTimeout(() => { longed = true; this.handlers.onSellConsumable(idx); }, 600);
+        }, { passive: true });
+        const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+        node.addEventListener("touchend", cancel);
+        node.addEventListener("touchmove", cancel);
+        // 拦截长按后的 click（避免又触发使用）
+        node.addEventListener("click", (e) => { if (longed) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+      }
+      return node;
+    }
+
+    renderConsumables() {
+      const s = this.query.getState();
+      const e = this.el;
+      e.consumables.innerHTML = "";
+      (s.consumables || []).forEach((c, idx) => {
+        const node = this._consumableNode(c, idx);
+        node.classList.add("joker-enter");
+        node.style.animationDelay = (idx * 0.06) + "s";
+        e.consumables.appendChild(node);
+      });
+      // 占位提示
+      if (!s.consumables || !s.consumables.length) {
+        const ph = document.createElement("div");
+        ph.className = "consumable-empty";
+        ph.textContent = "空";
+        e.consumables.appendChild(ph);
+      }
+      e.consumableCount.textContent = (s.consumables ? s.consumables.length : 0) + "/" + s.maxConsumables;
+    }
+
+    // ---------- 牌型预览（含等级） ----------
     renderHandTypePreview() {
       const preview = this.query.getHandPreview();
       const e = this.el;
@@ -226,7 +284,7 @@
       }
       e.handTypeBanner.classList.remove("hidden");
       e.handTypeName.textContent = preview.name;
-      e.handTypeLevel.textContent = "";
+      e.handTypeLevel.textContent = "Lv." + (preview.level || 1);
       e.chipsView.textContent = preview.baseChips;
       e.multView.textContent = preview.baseMult;
     }
@@ -266,10 +324,10 @@
         e.playArea.appendChild(node);
       }
 
-      // 牌型横幅与基础分
+      // 牌型横幅与基础分（含等级）
       e.handTypeBanner.classList.remove("hidden");
       e.handTypeName.textContent = result.handType.name;
-      e.handTypeLevel.textContent = "";
+      e.handTypeLevel.textContent = "Lv." + (result.handType.level || 1);
       e.chipsView.textContent = result.baseChips;
       e.multView.textContent = result.baseMult;
       await sleep(250);
@@ -498,6 +556,56 @@
 
         e.shopOwnedJokers.appendChild(wrap);
       });
+
+      // ----- 待售行星牌 -----
+      if (e.shopPlanets) {
+        e.shopPlanets.innerHTML = "";
+        const planets = s.shopPlanets || [];
+        if (!planets.length) {
+          e.shopPlanets.innerHTML = '<div style="color:#9bb0a8">暂无行星牌</div>';
+        }
+        planets.forEach((item, idx) => {
+          const wrap = document.createElement("div");
+          wrap.className = "shop-item" + (item.sold ? " sold" : "");
+          wrap.appendChild(this._consumablePreviewNode(item.planet));
+
+          const price = document.createElement("div");
+          price.className = "price";
+          price.textContent = "$" + item.planet.price;
+          wrap.appendChild(price);
+
+          const buy = document.createElement("button");
+          buy.className = "btn btn-play buy";
+          buy.textContent = item.sold ? "已购买" : "购买";
+          buy.disabled = item.sold || s.money < item.planet.price ||
+            (s.consumables && s.consumables.length >= s.maxConsumables);
+          buy.onclick = () => this.handlers.onBuyPlanet(idx);
+          wrap.appendChild(buy);
+
+          e.shopPlanets.appendChild(wrap);
+        });
+      }
+    }
+
+    // 商店里的行星牌预览（不绑定使用/卖出，只展示 + tip）
+    _consumablePreviewNode(c) {
+      const node = document.createElement("div");
+      node.className = "consumable kind-" + (c.kind || "planet");
+      const target = c.target ? (window.Cards.HAND_TYPES[c.target] || {}).name : "";
+      node.innerHTML = `
+        <div class="cons-face">${c.face}</div>
+        <div class="cons-name">${c.name}</div>
+        <div class="cons-effect">升级<br><b>${target}</b></div>
+        <div class="tip"><b>${c.name}</b><br>使用后升级牌型【${target}】等级</div>
+      `;
+      const isTouchEnv = window.matchMedia("(hover: none)").matches;
+      if (isTouchEnv) {
+        node.addEventListener("click", () => {
+          document.querySelectorAll(".consumable.show-tip,.joker.show-tip").forEach((n) => { if (n !== node) n.classList.remove("show-tip"); });
+          node.classList.toggle("show-tip");
+        });
+      }
+      return node;
     }
 
     // ============================================================
@@ -578,6 +686,15 @@
       void f.offsetWidth;
       f.className = color;
       setTimeout(() => { f.className = ""; }, 600);
+    }
+
+    // 屏幕中央短暂提示文字
+    toastCenter(text) {
+      const t = document.createElement("div");
+      t.className = "center-toast";
+      t.textContent = text;
+      this.el.floaters.appendChild(t);
+      setTimeout(() => t.remove(), 1400);
     }
 
     // 在某节点中心迸发粒子
