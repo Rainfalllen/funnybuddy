@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>小丑牌 · Balatro JS</title>
+
+  <!-- PWA 应用清单 -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#16291f" />
+  <meta name="color-scheme" content="dark" />
+
+  <!-- iOS 添加到主屏 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="小丑牌" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- 背景漂浮光点特效 -->
+  <div id="bgfx"></div>
+
+  <div id="game">
+    <!-- 顶部：盲注信息与计分 -->
+    <header id="topbar">
+      <div class="panel blind-panel">
+        <div class="blind-name" id="blindName">小盲注</div>
+        <div class="blind-target">目标 <span id="targetScore">300</span></div>
+        <div class="blind-reward" id="blindReward">奖励 $3</div>
+      </div>
+
+      <div class="panel score-panel">
+        <div class="round-score-label">本轮得分</div>
+        <div class="round-score" id="roundScore">0</div>
+        <div class="score-formula">
+          <span class="chips" id="chipsView">0</span>
+          <span class="times">×</span>
+          <span class="mult" id="multView">0</span>
+        </div>
+      </div>
+
+      <div class="panel stats-panel">
+        <div class="stat money"><span class="stat-label">资金</span><span id="moneyView">$4</span></div>
+        <div class="stat"><span class="stat-label">出牌</span><span id="handsView">4</span></div>
+        <div class="stat"><span class="stat-label">弃牌</span><span id="discardsView">3</span></div>
+        <div class="stat"><span class="stat-label">底注</span><span id="anteView">1/8</span></div>
+        <div class="stat"><span class="stat-label">回合</span><span id="roundView">1</span></div>
+      </div>
+    </header>
+
+    <!-- 小丑牌区 -->
+    <section class="row jokers-row">
+      <div class="row-label">小丑牌 <span id="jokerCount">0/5</span></div>
+      <div id="jokers" class="card-strip jokers"></div>
+    </section>
+
+    <!-- 当前出牌型展示 -->
+    <div id="handTypeBanner" class="hand-type-banner hidden">
+      <span id="handTypeName"></span>
+      <span id="handTypeLevel"></span>
+    </div>
+
+    <!-- 主牌桌 -->
+    <section class="table-area">
+      <div id="playArea" class="play-area"></div>
+    </section>
+
+    <!-- 手牌 -->
+    <section class="row hand-row">
+      <div class="row-label">手牌 <span id="deckCount">52</span></div>
+      <div id="hand" class="card-strip hand"></div>
+    </section>
+
+    <!-- 操作按钮 -->
+    <footer id="actions">
+      <button id="playBtn" class="btn btn-play" disabled>出牌</button>
+      <button id="sortRankBtn" class="btn btn-sort">按点数排序</button>
+      <button id="sortSuitBtn" class="btn btn-sort">按花色排序</button>
+      <button id="discardBtn" class="btn btn-discard" disabled>弃牌</button>
+    </footer>
+  </div>
+
+  <!-- 商店弹层 -->
+  <div id="shopOverlay" class="overlay hidden">
+    <div class="shop">
+      <div class="shop-header">
+        <h2>商店</h2>
+        <div class="shop-money">资金 <span id="shopMoney">$0</span></div>
+      </div>
+      <div class="shop-section">
+        <div class="shop-section-title">小丑牌</div>
+        <div id="shopJokers" class="shop-items"></div>
+      </div>
+      <div class="shop-footer">
+        <button id="rerollBtn" class="btn btn-reroll">刷新 ($5)</button>
+        <button id="nextRoundBtn" class="btn btn-next">下一回合 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 盲注选择弹层 -->
+  <div id="blindOverlay" class="overlay hidden">
+    <div class="blind-select">
+      <h2 id="blindSelectTitle">选择盲注</h2>
+      <div id="blindCards" class="blind-cards"></div>
+    </div>
+  </div>
+
+  <!-- 结束/胜利弹层 -->
+  <div id="endOverlay" class="overlay hidden">
+    <div class="end-box">
+      <h2 id="endTitle">游戏结束</h2>
+      <p id="endMsg"></p>
+      <button id="restartBtn" class="btn btn-play">重新开始</button>
+    </div>
+  </div>
+
+  <!-- 操作日志面板 -->
+  <aside id="logPanel">
+    <div class="log-header">
+      <span class="log-title">📜 操作日志</span>
+      <button id="logClear" class="log-clear" title="清空日志">清空</button>
+    </div>
+    <div id="logList" class="log-list"></div>
+  </aside>
+  <button id="logToggle" title="显示/隐藏日志">📜</button>
+
+  <!-- 飘字层 -->
+  <div id="floaters"></div>
+
+  <!-- 粒子/爆发特效层 -->
+  <div id="fxLayer"></div>
+
+  <!-- 全屏闪光层 -->
+  <div id="flash"></div>
+
+  <!-- 数据/工具层 -->
+  <script src="js/cards.js"></script>
+  <script src="js/jokers.js"></script>
+  <!-- 逻辑层（不依赖 DOM） -->
+  <script src="js/core.js"></script>
+  <!-- 表现层（只负责渲染/动画） -->
+  <script src="js/view.js"></script>
+  <!-- 控制层（连接逻辑与表现） -->
+  <script src="js/app.js"></script>
+
+  <!-- PWA Service Worker 注册 -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch((e) => {
+          console.warn("[PWA] service worker 注册失败：", e);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

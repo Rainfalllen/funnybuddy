@@ -1,0 +1,21 @@
+{
+  "name": "小丑牌 · Balatro JS",
+  "short_name": "小丑牌",
+  "description": "一个仿 Balatro 的扑克 Roguelike 网页游戏。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#16291f",
+  "theme_color": "#16291f",
+  "lang": "zh-CN",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
