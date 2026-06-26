@@ -898,6 +898,158 @@ body {
   .btn { padding: 9px 12px; font-size: 13px; }
 }
 
+/* ============================================================
+ * 手机竖屏专用优化（窄+高）
+ * 触发条件：竖屏 & 宽度 ≤ 720px
+ * ============================================================ */
+@media (orientation: portrait) and (max-width: 720px) {
+  #game {
+    padding: 6px 6px calc(env(safe-area-inset-bottom) + 84px); /* 留出 sticky 操作栏空间 */
+    gap: 6px;
+  }
+
+  /* 顶部紧凑：3 列单行，去掉冗余信息 */
+  #topbar {
+    grid-template-columns: 1fr 1.4fr 1fr;
+    gap: 6px;
+  }
+  .panel { padding: 6px 8px; border-radius: 8px; }
+  .blind-panel { display: flex; flex-direction: column; justify-content: center; }
+  .blind-name { font-size: 14px; letter-spacing: 0; }
+  .blind-target { font-size: 11px; margin-top: 2px; }
+  .blind-target span { font-size: 14px; }
+  .blind-reward { font-size: 10px; margin-top: 2px; }
+
+  .score-panel { padding: 4px 6px; }
+  .round-score-label { font-size: 10px; }
+  .round-score { font-size: 22px; }
+  .score-formula { font-size: 16px; margin-top: 2px; gap: 4px; }
+  .score-formula .chips, .score-formula .mult { padding: 1px 8px; min-width: 0; }
+
+  /* 资金/出牌/弃牌/底注/回合 改 2x3 网格，避免被挤成一行不可读 */
+  .stats-panel {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+  }
+  .stat { padding: 3px 2px; border-radius: 6px; }
+  .stat .stat-label { font-size: 9px; }
+  .stat span:last-child { font-size: 13px; }
+
+  /* 行标签更小 */
+  .row-label { font-size: 10px; margin-bottom: 2px; }
+
+  /* 小丑牌：横向滚动条，不再换行（节省垂直高度） */
+  .jokers-row .card-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: visible;        /* 允许触发动画的 y 方向溢出 */
+    justify-content: flex-start;
+    min-height: 118px;
+    padding: 18px 2px 6px;       /* 顶部留空间，触发弹跳不被裁 */
+    scroll-snap-type: x mandatory;
+  }
+  .jokers-row .joker { scroll-snap-align: start; }
+  /* 隐藏小滚动条美化 */
+  .jokers-row .card-strip::-webkit-scrollbar { height: 4px; }
+  .jokers-row .card-strip::-webkit-scrollbar-thumb { background: #ffffff22; border-radius: 2px; }
+
+  /* 牌桌区压扁 */
+  .table-area { min-height: 100px; padding: 8px; border-radius: 10px; }
+  .play-area { min-height: 80px; gap: 4px; }
+  .hand-type-banner { font-size: 14px; height: 18px; }
+
+  /* 手牌：扇形重叠排列（Balatro 风格），8 张牌一屏铺完不滚动 */
+  .hand-row { padding: 0 4px; }
+  .card-strip.hand {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    overflow: visible;
+    gap: 0;
+    min-height: 90px;
+    padding: 8px 4px 4px;
+  }
+  .card-strip.hand .card {
+    margin-left: -18px;          /* 重叠 */
+    transition: margin .15s ease, transform .15s ease, box-shadow .15s ease;
+  }
+  .card-strip.hand .card:first-child { margin-left: 0; }
+  .card-strip.hand .card.selected {
+    transform: translateY(-14px) scale(1.05);
+    z-index: 3;
+    margin-left: -6px;            /* 选中时挤开邻牌 */
+  }
+  .card-strip.hand .card.selected + .card { margin-left: -6px; }
+  /* 卡牌缩小再压一点 */
+  .card { width: 52px; height: 74px; }
+  .card .pip-center { font-size: 22px; }
+  .card .corner.tl, .card .corner.br { font-size: 11px; }
+  .card .corner.tl { top: 4px; left: 5px; }
+  .card .corner.br { bottom: 4px; right: 5px; }
+
+  /* 操作按钮固定底部，拇指可达 */
+  #actions {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 0;
+    padding: 8px 8px calc(env(safe-area-inset-bottom) + 8px);
+    background: linear-gradient(180deg, #16291f00, #0d1813ee 40%);
+    z-index: 80;
+    justify-content: space-evenly;
+    gap: 6px;
+  }
+  #actions .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 12px 6px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+  #actions .btn-sort { font-size: 11px; padding: 12px 4px; }
+
+  /* 日志开关挪到左上避免遮资金，竖屏更不易误触 */
+  #logToggle { top: 6px; right: 6px; width: 34px; height: 34px; font-size: 14px; }
+  #logPanel.open ~ #logToggle { right: calc(86vw + 6px); }
+
+  /* 商店里小丑牌也允许横滚 */
+  .shop-items {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+}
+
+/* ---------- 极矮屏（如折叠展开横用 / iPhone SE landscape） ---------- */
+@media (orientation: portrait) and (max-height: 700px) {
+  #game { gap: 4px; }
+  .jokers-row .card-strip { min-height: 104px; }
+  .joker { width: 72px; height: 104px; }
+  .joker .joker-face { font-size: 18px; }
+  .joker .joker-effect { -webkit-line-clamp: 2; }
+  .card { width: 46px; height: 66px; }
+  .card .pip-center { font-size: 18px; }
+  .table-area { min-height: 80px; }
+}
+
+/* ---------- 横屏（landscape）也兼顾一下：避免 sticky 按钮抢空间 ---------- */
+@media (orientation: landscape) and (max-height: 500px) {
+  #game { padding: 4px 6px; gap: 4px; }
+  #topbar { grid-template-columns: 1fr 1.2fr 1.5fr; gap: 6px; }
+  .panel { padding: 4px 8px; }
+  .blind-name { font-size: 14px; }
+  .round-score { font-size: 20px; }
+  .score-formula { font-size: 14px; }
+  .card { width: 48px; height: 68px; }
+  .card .pip-center { font-size: 18px; }
+  .joker { width: 70px; height: 100px; }
+  .joker .joker-face { font-size: 18px; }
+  .joker .joker-effect { -webkit-line-clamp: 2; font-size: 7.5px; }
+  .table-area { min-height: 80px; padding: 6px; }
+  .jokers-row .card-strip { min-height: 104px; flex-wrap: nowrap; overflow-x: auto; }
+  /* 横屏时按钮回归普通流式，避免遮挡 */
+  #actions { position: static; padding: 4px; background: none; }
+}
+
 /* ---------- 安装后的 PWA 独立模式 ---------- */
 @media (display-mode: standalone) {
   body { background: radial-gradient(circle at 50% -10%, #356b53, #16291f 70%, #0d1813 100%); }
