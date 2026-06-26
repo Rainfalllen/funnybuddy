@@ -22,13 +22,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          # 如果 Pages 还未启用，自动启用（需要工作流有 pages: write 权限，本工作流已有）
+          enablement: true
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           # 整个仓库根目录就是站点根
           path: "."
