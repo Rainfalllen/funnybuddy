@@ -28,6 +28,14 @@
       busy = true;
       view.lockActions();
       const result = core.playHand();
+      // Boss 巨口：牌型不符被拒
+      if (result && result.invalid) {
+        busy = false;
+        view.updateActionButtons();
+        view.toastCenter("👄 只能打出【" + result.lockedName + "】");
+        view.screenShake();
+        return;
+      }
       await view.animateScore(result);
       core.finishScoring(result);
       busy = false;
@@ -134,6 +142,15 @@
       }
       view.renderShop();
     },
+    onBuySpectral: (idx) => {
+      const res = core.buySpectral(idx);
+      if (res && res.ok) {
+        if (window.SFX) window.SFX.buy();
+      } else if (!res.ok && res.reason === "full") {
+        alert("消耗牌已满（上限 " + core.CONFIG.MAX_CONSUMABLES + " 张），请先使用或卖出。");
+      }
+      view.renderShop();
+    },
     onReroll: () => { core.reroll(); view.renderShop(); },
     onNextRound: () => {
       view.hideShop();
@@ -212,10 +229,14 @@
       view.toastCenter("🪐 " + name + " 升级！");
     } else if (data.kind === "tarot") {
       view.toastCenter("🔮 " + data.name + (data.note ? " · " + data.note : ""));
-      // 被改造的牌闪一下
       if (data.cardIds && data.cardIds.length) {
         setTimeout(() => view.highlightCards(data.cardIds), 50);
       }
+    } else if (data.kind === "spectral") {
+      view.toastCenter("👻 " + data.name + (data.note ? " · " + data.note : ""));
+      view.screenShake();
+      // 幻灵牌可能增删手牌，重渲染
+      setTimeout(() => view.renderHand(), 50);
     }
   });
 
@@ -223,5 +244,9 @@
   core.on("gameLose", (data) => { view.flash("red"); view.screenShake(); view.showLose(data); });
 
   // ---------- 启动 ----------
-  core.newGame();
+  if (core.hasSave() && core.load()) {
+    core.resume();
+  } else {
+    core.newGame();
+  }
 })();

@@ -78,7 +78,10 @@
 
     <!-- 手牌 -->
     <section class="row hand-row">
-      <div class="row-label">手牌 <span id="deckCount">52</span></div>
+      <div class="row-label">
+        手牌 · 牌库剩余 <span id="deckCount">52</span>
+        <button id="deckViewBtn" class="mini-btn">📚 查看牌库</button>
+      </div>
       <div id="hand" class="card-strip hand"></div>
     </section>
 
@@ -121,6 +124,13 @@
         <div id="shopTarots" class="shop-items"></div>
       </div>
 
+      <div class="shop-section" id="shopSpectralSection">
+        <div class="shop-section-title">
+          👻 幻灵牌 <span class="hint">稀有 · 效果激进</span>
+        </div>
+        <div id="shopSpectrals" class="shop-items"></div>
+      </div>
+
       <div class="shop-section">
         <div class="shop-section-title">
           🤡 我的小丑牌 <span id="shopOwnedCount" class="hint">0/5</span>
@@ -144,6 +154,18 @@
       <div class="blind-footer">
         <button id="openShopBtn" class="btn btn-reroll">🛒 进入商店</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 牌库查看弹层 -->
+  <div id="deckOverlay" class="overlay hidden">
+    <div class="deck-viewer">
+      <div class="deck-viewer-header">
+        <h2>📚 我的牌库</h2>
+        <div class="deck-stats" id="deckStats"></div>
+        <button id="deckCloseBtn" class="btn btn-sort">关闭</button>
+      </div>
+      <div id="deckGrid" class="deck-grid"></div>
     </div>
   </div>
 
@@ -181,6 +203,7 @@
   <script src="js/jokers.js"></script>
   <script src="js/planets.js"></script>
   <script src="js/tarots.js"></script>
+  <script src="js/spectrals.js"></script>
   <!-- 逻辑层（不依赖 DOM） -->
   <script src="js/core.js"></script>
   <!-- 表现层（只负责渲染/动画） -->

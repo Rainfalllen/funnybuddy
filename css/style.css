@@ -790,6 +790,98 @@ body::before {
   50% { box-shadow: 0 0 16px #e44b4bcc; }
 }
 
+/* ===== 牌库查看器 ===== */
+.mini-btn {
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #ffffff33;
+  background: #00000044;
+  color: var(--text);
+  cursor: pointer;
+}
+.mini-btn:hover { border-color: var(--gold); color: var(--gold); }
+.deck-viewer {
+  background: linear-gradient(180deg, #20303a, #16242c);
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  padding: 18px;
+  width: min(820px, 94vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow);
+}
+.deck-viewer-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.deck-viewer-header h2 { color: var(--gold); }
+.deck-stats { flex: 1; font-size: 13px; color: var(--muted); }
+.deck-stats b { color: var(--text); }
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.deck-mini {
+  background: linear-gradient(160deg, #ffffff, #ece8db);
+  border-radius: 7px;
+  padding: 6px 2px;
+  text-align: center;
+  position: relative;
+  border: 1px solid #00000022;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+.deck-mini.red { color: var(--red); }
+.deck-mini.black { color: #1c1c1c; }
+.deck-mini .dm-rank { font-size: 16px; font-weight: 800; }
+.deck-mini .dm-tags { font-size: 7.5px; color: #555; line-height: 1.1; }
+.deck-mini.seal-gold { box-shadow: 0 0 0 2px var(--gold); }
+.deck-mini.seal-red  { box-shadow: 0 0 0 2px var(--red); }
+.deck-mini.seal-blue { box-shadow: 0 0 0 2px var(--blue); }
+
+/* ===== 盖牌（背面） ===== */
+.card.face-down .card-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 9px;
+  background:
+    repeating-linear-gradient(45deg, #3a1f6b, #3a1f6b 6px, #4a2a82 6px, #4a2a82 12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: #ffffff66;
+  border: 2px solid #ffd54a55;
+}
+
+/* ===== 幻灵牌底色 ===== */
+.consumable.kind-tarot {
+  border-color: #b07fe0aa;
+  background:
+    radial-gradient(circle at 50% 25%, #7a4ba8, #2a1444 80%),
+    linear-gradient(160deg, #3a1f5f, #1a0e2e);
+  box-shadow: var(--shadow), 0 0 14px #8a52d855;
+}
+.consumable.kind-spectral {
+  border-color: #5fd0c0aa;
+  background:
+    radial-gradient(circle at 50% 25%, #2a6a6a, #0e2a2a 80%),
+    linear-gradient(160deg, #143a3a, #081c1c);
+  box-shadow: var(--shadow), 0 0 16px #5fd0c066;
+}
+.consumable.kind-spectral .cons-face { filter: drop-shadow(0 0 8px #5fd0c0aa); }
+
 /* ===== 塔罗选牌模式 ===== */
 .tarot-bar {
   position: fixed;

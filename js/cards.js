@@ -232,6 +232,14 @@ function checkStraight(ranks) {
 }
 
 // 导出到全局（无打包环境）
+// 生成一张随机花色的指定点数牌（幻灵牌用）
+function makeRandomCard(rank) {
+  const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+  const rankObj = RANKS.find((r) => r.rank === rank) || RANKS[0];
+  return makeCard(suit, rankObj);
+}
+function nextCardId() { return ++uidCounter; }
+
 window.Cards = {
   SUITS,
   RANKS,
@@ -243,4 +251,6 @@ window.Cards = {
   buildDeck,
   shuffle,
   evaluateHand,
+  makeRandomCard,
+  nextCardId,
 };

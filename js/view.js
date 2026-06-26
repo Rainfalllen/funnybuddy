@@ -29,7 +29,9 @@
         anteView: $("anteView"), roundView: $("roundView"),
         jokers: $("jokers"), jokerCount: $("jokerCount"),
         consumables: $("consumables"), consumableCount: $("consumableCount"),
-        shopPlanets: $("shopPlanets"), shopTarots: $("shopTarots"),
+        shopPlanets: $("shopPlanets"), shopTarots: $("shopTarots"), shopSpectrals: $("shopSpectrals"),
+        deckViewBtn: $("deckViewBtn"), deckOverlay: $("deckOverlay"), deckGrid: $("deckGrid"),
+        deckStats: $("deckStats"), deckCloseBtn: $("deckCloseBtn"),
         handTypeBanner: $("handTypeBanner"), handTypeName: $("handTypeName"), handTypeLevel: $("handTypeLevel"),
         playArea: $("playArea"), hand: $("hand"), deckCount: $("deckCount"),
         playBtn: $("playBtn"), discardBtn: $("discardBtn"),
@@ -61,6 +63,8 @@
       this.el.restartBtn.onclick = () => h.onRestart();
       this.el.logToggle.onclick = () => this.el.logPanel.classList.toggle("open");
       this.el.logClear.onclick = () => { this.el.logList.innerHTML = ""; };
+      if (this.el.deckViewBtn) this.el.deckViewBtn.onclick = () => this.showDeckViewer();
+      if (this.el.deckCloseBtn) this.el.deckCloseBtn.onclick = () => this.el.deckOverlay.classList.add("hidden");
     }
 
     // 背景漂浮光点
@@ -122,6 +126,14 @@
       if (seal) node.classList.add("seal-" + seal);
       node.dataset.cardId = c.id;
       if (selectedSet && selectedSet.has(c.id)) node.classList.add("selected");
+
+      // 盖牌（Boss·宅）：显示背面，仍可选中
+      if (c.faceDown) {
+        node.classList.add("face-down");
+        node.innerHTML = `<div class="card-back">🂠</div>`;
+        if (selectable) node.onclick = () => this.handlers.onCardClick(c.id);
+        return node;
+      }
 
       // 石头牌不显示点数花色
       const isStone = enh === "stone";
@@ -256,9 +268,10 @@
       const node = document.createElement("div");
       node.className = "consumable kind-" + (c.kind || "planet");
       let effectHtml, tipHtml;
-      if (c.kind === "tarot") {
+      if (c.kind === "tarot" || c.kind === "spectral") {
         effectHtml = `<div class="cons-effect">${c.desc}</div>`;
-        tipHtml = `<b>${c.name}</b><br>${c.desc}<br><span style="color:#9bb0a8">点击使用（需选牌）· 右键/长按卖出</span>`;
+        const needSel = (c.needCards && c.needCards[1] > 0) ? "（需选牌）" : "";
+        tipHtml = `<b>${c.name}</b><br>${c.desc}<br><span style="color:#9bb0a8">点击使用${needSel} · 右键/长按卖出</span>`;
       } else {
         const target = c.target ? (window.Cards.HAND_TYPES[c.target] || {}).name : "";
         effectHtml = `<div class="cons-effect">升级<br><b>${target}</b></div>`;
@@ -656,7 +669,56 @@
           e.shopTarots.appendChild(wrap);
         });
       }
+
+      // ----- 待售幻灵牌 -----
+      if (e.shopSpectrals) {
+        e.shopSpectrals.innerHTML = "";
+        const list = s.shopSpectrals || [];
+        const section = document.getElementById("shopSpectralSection");
+        if (section) section.style.display = list.length ? "" : "none";
+        list.forEach((item, idx) => {
+          const wrap = document.createElement("div");
+          wrap.className = "shop-item" + (item.sold ? " sold" : "");
+          wrap.appendChild(this._spectralPreviewNode(item.spectral));
+
+          const price = document.createElement("div");
+          price.className = "price";
+          price.textContent = "$" + item.spectral.price;
+          wrap.appendChild(price);
+
+          const buy = document.createElement("button");
+          buy.className = "btn btn-play buy";
+          buy.textContent = item.sold ? "已购买" : "购买";
+          buy.disabled = item.sold || s.money < item.spectral.price ||
+            (s.consumables && s.consumables.length >= s.maxConsumables);
+          buy.onclick = () => this.handlers.onBuySpectral(idx);
+          wrap.appendChild(buy);
+
+          e.shopSpectrals.appendChild(wrap);
+        });
+      }
     }
+
+    // 幻灵牌预览节点
+    _spectralPreviewNode(sp) {
+      const node = document.createElement("div");
+      node.className = "consumable kind-spectral";
+      node.innerHTML = `
+        <div class="cons-face">${sp.face}</div>
+        <div class="cons-name">${sp.name}</div>
+        <div class="cons-effect">${sp.desc}</div>
+        <div class="tip"><b>${sp.name}</b><br>${sp.desc}</div>
+      `;
+      const isTouchEnv = window.matchMedia("(hover: none)").matches;
+      if (isTouchEnv) {
+        node.addEventListener("click", () => {
+          document.querySelectorAll(".consumable.show-tip,.joker.show-tip").forEach((n) => { if (n !== node) n.classList.remove("show-tip"); });
+          node.classList.toggle("show-tip");
+        });
+      }
+      return node;
+    }
+
 
     // 塔罗牌预览节点
     _tarotPreviewNode(t) {
@@ -786,6 +848,46 @@
       t.textContent = text;
       this.el.floaters.appendChild(t);
       setTimeout(() => t.remove(), 1400);
+    }
+
+    // ===== 牌库查看器 =====
+    showDeckViewer() {
+      const s = this.query.getState();
+      const all = (s.deck || []).concat(s.hand || []);
+      // 按花色+点数排序展示
+      const order = { S: 0, H: 1, D: 2, C: 3 };
+      all.sort((a, b) => (order[a.suit] - order[b.suit]) || (b.rank - a.rank));
+
+      // 统计增强/版本/封数量
+      const C = window.Cards;
+      let enh = 0, ed = 0, seal = 0;
+      all.forEach((c) => {
+        if (c.enhancement && c.enhancement !== "none") enh++;
+        if (c.edition && c.edition !== "none") ed++;
+        if (c.seal && c.seal !== "none") seal++;
+      });
+      this.el.deckStats.innerHTML =
+        `共 <b>${all.length}</b> 张 · 增强 <b>${enh}</b> · 版本 <b>${ed}</b> · 蜡封 <b>${seal}</b>`;
+
+      this.el.deckGrid.innerHTML = "";
+      all.forEach((c) => {
+        const mini = document.createElement("div");
+        const enhCls = c.enhancement && c.enhancement !== "none" ? " enh-" + c.enhancement : "";
+        const edCls = c.edition && c.edition !== "none" ? " ed-" + c.edition : "";
+        const sealCls = c.seal && c.seal !== "none" ? " seal-" + c.seal : "";
+        mini.className = "deck-mini " + (c.color === "red" ? "red" : "black") + enhCls + edCls + sealCls;
+        const tags = [];
+        if (c.enhancement && c.enhancement !== "none") tags.push((C.ENHANCEMENTS[c.enhancement] || {}).name);
+        if (c.edition && c.edition !== "none") tags.push((C.EDITIONS[c.edition] || {}).name);
+        if (c.seal && c.seal !== "none") tags.push((C.SEALS[c.seal] || {}).name);
+        const isStone = c.enhancement === "stone";
+        mini.innerHTML = `
+          <div class="dm-rank">${isStone ? "🪨" : c.label + c.symbol}</div>
+          ${tags.length ? `<div class="dm-tags">${tags.join("·")}</div>` : ""}
+        `;
+        this.el.deckGrid.appendChild(mini);
+      });
+      this.el.deckOverlay.classList.remove("hidden");
     }
 
     // 高亮被塔罗牌改造的手牌

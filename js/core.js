@@ -5,10 +5,11 @@
  * 通过方法接收外界（控制层）的操作指令。
  * ============================================================ */
 (function () {
-  const { HAND_TYPES, ENHANCEMENTS, EDITIONS, getHandStats, buildDeck, shuffle, evaluateHand } = window.Cards;
+  const { HAND_TYPES, ENHANCEMENTS, EDITIONS, getHandStats, buildDeck, shuffle, evaluateHand, makeRandomCard, nextCardId } = window.Cards;
   const { JOKER_POOL } = window.Jokers;
   const { PLANET_POOL } = window.Planets;
   const { TAROT_POOL } = window.Tarots || { TAROT_POOL: [] };
+  const { SPECTRAL_POOL } = window.Spectrals || { SPECTRAL_POOL: [] };
 
   // ---------- 规则常量 ----------
   const CONFIG = {
@@ -29,6 +30,12 @@
       { id: "the_arm", name: "巨臂", icon: "💪", desc: "本场所有牌型降 1 级计分", handLevelPenalty: 1 },
       { id: "the_ox", name: "蛮牛", icon: "🐂", desc: "出牌次数 -1", handsPenalty: 1 },
       { id: "the_fish", name: "鱼", icon: "🐟", desc: "弃牌次数 -1", discardsPenalty: 1 },
+      { id: "the_face", name: "人面", icon: "🃟", desc: "人头牌(J/Q/K)不计分", debuffFace: true },
+      { id: "the_window", name: "窗", icon: "🪟", desc: "首张计分牌不计分", debuffFirst: true },
+      { id: "the_house", name: "宅", icon: "🏠", desc: "起手 3 张牌正面朝下（盖牌）", faceDown: 3 },
+      { id: "the_pillar", name: "石柱", icon: "🏛️", desc: "手牌上限 -2", handSizePenalty: 2 },
+      { id: "the_mouth", name: "巨口", icon: "👄", desc: "本场只能打出 1 种牌型", oneHandType: true },
+      { id: "the_needle", name: "针", icon: "📍", desc: "只有 1 次出牌机会（但弃牌+2）", onlyOneHand: true },
     ],
     HAND_SIZE: 8,
     MAX_HANDS: 4,
@@ -63,9 +70,138 @@
       this.CONFIG = CONFIG;
     }
 
+    // 覆盖 emit：每次 change 自动存档（gameWin/gameLose 时清档）
+    emit(event, payload) {
+      super.emit(event, payload);
+      if (event === "change") this.save();
+      if (event === "gameWin" || event === "gameLose") this.clearSave();
+    }
+
     // ---------- 操作日志（仅广播，不存状态） ----------
     _log(text, type = "info") {
       this.emit("log", { text, type });
+    }
+
+    // ============================================================
+    // 存档（localStorage）
+    // ============================================================
+    save() {
+      try {
+        const s = this.state;
+        if (!s) return;
+        const data = {
+          v: 2, // 存档版本
+          deck: s.deck,
+          hand: s.hand,
+          // 小丑牌：存 id + 可变属性（edition）
+          jokers: s.jokers.map((j) => ({ id: j.id, edition: j.edition || "none" })),
+          // 消耗牌：存 id + kind
+          consumables: s.consumables.map((c) => ({ id: c.id, kind: c.kind })),
+          handLevels: s.handLevels,
+          money: s.money,
+          ante: s.ante,
+          blindIndex: s.blindIndex,
+          round: s.round,
+          handsLeft: s.handsLeft,
+          discardsLeft: s.discardsLeft,
+          roundScore: s.roundScore,
+          targetScore: s.targetScore,
+          handTypePlays: s.handTypePlays,
+          rideCounter: s.rideCounter,
+          bossEffect: s.bossEffect,
+          handSize: s.handSize,
+          lockedHandType: s.lockedHandType,
+          shopItems: this._serializeShop(s.shopItems, "joker"),
+          shopPlanets: this._serializeShop(s.shopPlanets, "planet"),
+          shopTarots: this._serializeShop(s.shopTarots, "tarot"),
+          shopSpectrals: this._serializeShop(s.shopSpectrals, "spectral"),
+          phase: this._phase || "play",
+        };
+        localStorage.setItem("funnybuddy_save", JSON.stringify(data));
+      } catch (e) { /* 存储失败静默 */ }
+    }
+    _serializeShop(arr, type) {
+      if (!arr) return [];
+      return arr.map((it) => {
+        if (type === "joker") return { id: it.joker.id, edition: it.edition, sold: it.sold };
+        if (type === "planet") return { id: it.planet.id, sold: it.sold };
+        if (type === "tarot") return { id: it.tarot.id, sold: it.sold };
+        if (type === "spectral") return { id: it.spectral.id, sold: it.sold };
+      });
+    }
+    hasSave() {
+      try { return !!localStorage.getItem("funnybuddy_save"); } catch (e) { return false; }
+    }
+    clearSave() {
+      try { localStorage.removeItem("funnybuddy_save"); } catch (e) { /* ignore */ }
+    }
+    // 读档：成功返回 true
+    load() {
+      try {
+        const raw = localStorage.getItem("funnybuddy_save");
+        if (!raw) return false;
+        const d = JSON.parse(raw);
+        if (!d || !d.deck) return false;
+
+        const findJoker = (id) => JOKER_POOL.find((j) => j.id === id);
+        const findPlanet = (id) => PLANET_POOL.find((p) => p.id === id);
+        const findTarot = (id) => TAROT_POOL.find((t) => t.id === id);
+        const findSpectral = (id) => SPECTRAL_POOL.find((sp) => sp.id === id);
+
+        this.state = {
+          deck: d.deck || [],
+          hand: d.hand || [],
+          selected: new Set(),
+          jokers: (d.jokers || []).map((js) => {
+            const base = findJoker(js.id);
+            if (!base) return null;
+            const inst = Object.assign({}, base);
+            inst.edition = js.edition || "none";
+            return inst;
+          }).filter(Boolean),
+          consumables: (d.consumables || []).map((cs) => {
+            if (cs.kind === "planet") return findPlanet(cs.id);
+            if (cs.kind === "tarot") return findTarot(cs.id);
+            if (cs.kind === "spectral") return findSpectral(cs.id);
+            return null;
+          }).filter(Boolean),
+          handLevels: d.handLevels || {},
+          money: d.money ?? 4,
+          ante: d.ante ?? 1,
+          blindIndex: d.blindIndex ?? 0,
+          round: d.round ?? 1,
+          handsLeft: d.handsLeft ?? CONFIG.MAX_HANDS,
+          discardsLeft: d.discardsLeft ?? CONFIG.MAX_DISCARDS,
+          roundScore: d.roundScore ?? 0,
+          targetScore: d.targetScore ?? 0,
+          handTypePlays: d.handTypePlays || {},
+          rideCounter: d.rideCounter || 0,
+          bossEffect: d.bossEffect || null,
+          handSize: d.handSize || CONFIG.HAND_SIZE,
+          lockedHandType: d.lockedHandType || null,
+          shopItems: (d.shopItems || []).map((it) => ({ joker: findJoker(it.id), edition: it.edition || "none", sold: it.sold })).filter((x) => x.joker),
+          shopPlanets: (d.shopPlanets || []).map((it) => ({ planet: findPlanet(it.id), sold: it.sold })).filter((x) => x.planet),
+          shopTarots: (d.shopTarots || []).map((it) => ({ tarot: findTarot(it.id), sold: it.sold })).filter((x) => x.tarot),
+          shopSpectrals: (d.shopSpectrals || []).map((it) => ({ spectral: findSpectral(it.id), sold: it.sold })).filter((x) => x.spectral),
+        };
+        this._phase = d.phase || "play";
+        this._log("📂 已读取上次存档，继续游戏", "good");
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+    // 从存档恢复后，根据 phase 把界面带到正确状态
+    resume() {
+      if (this._phase === "blindSelect") {
+        this.startBlindSelect();
+      } else if (this._phase === "shop") {
+        this.emit("shopOpen");
+        this.emit("change");
+      } else {
+        // play 阶段：直接回到牌桌
+        this.emit("change");
+      }
     }
 
     // ---------- 生命周期 ----------
@@ -90,8 +226,11 @@
         shopItems: [],
         shopPlanets: [],          // 商店出售的行星牌
         shopTarots: [],           // 商店出售的塔罗牌
+        shopSpectrals: [],        // 商店出售的幻灵牌
         bossEffect: null,         // 当前 Boss debuff
       };
+      this._phase = "blindSelect";
+      this.clearSave();
       this._log("🎴 新游戏开始，祝你好运！", "good");
       this.startBlindSelect();
     }
@@ -123,7 +262,9 @@
         shopItems: s.shopItems,
         shopPlanets: s.shopPlanets,
         shopTarots: s.shopTarots,
+        shopSpectrals: s.shopSpectrals,
         bossEffect: this.activeBossEffect(),
+        deck: s.deck,
       };
     }
 
@@ -157,6 +298,7 @@
         s.bossEffect = null;
       }
       s.targetScore = this.computeTarget();
+      this._phase = "blindSelect";
       const boss = this.activeBossEffect();
       this.emit("blindSelect", {
         ante: s.ante,
@@ -180,12 +322,21 @@
       s.selected.clear();
       s.handsLeft = CONFIG.MAX_HANDS - ((boss && boss.handsPenalty) || 0);
       s.discardsLeft = CONFIG.MAX_DISCARDS - ((boss && boss.discardsPenalty) || 0);
+      if (boss && boss.onlyOneHand) { s.handsLeft = 1; s.discardsLeft = CONFIG.MAX_DISCARDS + 2; }
+      s.handSize = CONFIG.HAND_SIZE - ((boss && boss.handSizePenalty) || 0);
+      s.lockedHandType = null; // 巨口：锁定的牌型
       s.roundScore = 0;
       s.handTypePlays = {};
       s.rideCounter = 0;
       s.targetScore = this.computeTarget();
       this.drawToFull();
+      // 宅：起手 N 张盖牌
+      if (boss && boss.faceDown) {
+        const n = Math.min(boss.faceDown, s.hand.length);
+        for (let i = 0; i < n; i++) s.hand[i].faceDown = true;
+      }
       this.sortByRank();
+      this._phase = "play";
       this._log(`▶ 进入 ${this.currentBlind().name}，目标分数 ${s.targetScore.toLocaleString()}`, "blind");
       if (boss) this._log(`${boss.icon} Boss 技能【${boss.name}】：${boss.desc}`, "bad");
       this.emit("roundStart");
@@ -194,7 +345,8 @@
 
     drawToFull() {
       const s = this.state;
-      while (s.hand.length < CONFIG.HAND_SIZE && s.deck.length) {
+      const cap = s.handSize || CONFIG.HAND_SIZE;
+      while (s.hand.length < cap && s.deck.length) {
         s.hand.push(s.deck.pop());
       }
     }
@@ -249,12 +401,32 @@
         st = getHandStats(res.typeKey, lowered);
       }
 
-      // Boss：被禁用花色的牌不计分
+      // Boss debuff：过滤不计分的牌
       let scoringCards = res.scoringCards.slice();
       if (boss && boss.debuffSuit) {
         scoringCards = scoringCards.filter((c) => c.suit !== boss.debuffSuit);
       }
+      if (boss && boss.debuffFace) {
+        scoringCards = scoringCards.filter((c) => !isFace(c));
+      }
+      if (boss && boss.debuffFirst && scoringCards.length) {
+        scoringCards = scoringCards.slice(1); // 去掉首张
+      }
       const scoringIds = new Set(scoringCards.map((c) => c.id));
+
+      // 巨口：锁定首个打出的牌型，之后只能打同牌型
+      if (boss && boss.oneHandType) {
+        if (!s.lockedHandType) {
+          s.lockedHandType = res.typeKey;
+        } else if (s.lockedHandType !== res.typeKey) {
+          // 违反锁定：本次出牌作废（不计分，返还出牌次数）
+          s.handsLeft++;
+          // 把牌放回手牌
+          s.hand = s.hand.concat(played);
+          this.sortByRank();
+          return { invalid: true, reason: "oneHandType", lockedName: HAND_TYPES[s.lockedHandType].name };
+        }
+      }
 
       // 牌型打出次数（含本次，供 supernova）
       s.handTypePlays[res.typeKey] = (s.handTypePlays[res.typeKey] || 0) + 1;
@@ -509,12 +681,15 @@
       const s = this.state;
       const hasItems = (s.shopItems && s.shopItems.some((it) => !it.sold)) ||
                        (s.shopPlanets && s.shopPlanets.some((it) => !it.sold)) ||
-                       (s.shopTarots && s.shopTarots.some((it) => !it.sold));
+                       (s.shopTarots && s.shopTarots.some((it) => !it.sold)) ||
+                       (s.shopSpectrals && s.shopSpectrals.some((it) => !it.sold));
       if (reroll || !hasItems) {
         s.shopItems = this.rollShop();
         s.shopPlanets = this.rollPlanets();
         s.shopTarots = this.rollTarots();
+        s.shopSpectrals = this.rollSpectrals();
       }
+      this._phase = "shop";
       this.emit("shopOpen");
       this.emit("change");
     }
@@ -550,6 +725,13 @@
       shuffle(pool);
       const n = 1 + (Math.random() < 0.5 ? 1 : 0);
       return pool.slice(0, n).map((t) => ({ tarot: t, sold: false }));
+    }
+    // 滚动出售的幻灵牌（约 45% 概率出 1 张，较稀有）
+    rollSpectrals() {
+      if (!SPECTRAL_POOL.length || Math.random() > 0.45) return [];
+      const pool = SPECTRAL_POOL.slice();
+      shuffle(pool);
+      return pool.slice(0, 1).map((sp) => ({ spectral: sp, sold: false }));
     }
     buyJoker(idx) {
       const s = this.state;
@@ -596,6 +778,20 @@
       this.emit("change");
       return { ok: true };
     }
+    // 购买幻灵牌：放入消耗牌槽位
+    buySpectral(idx) {
+      const s = this.state;
+      const item = s.shopSpectrals[idx];
+      if (!item || item.sold) return { ok: false };
+      if (s.money < item.spectral.price) return { ok: false, reason: "money" };
+      if (s.consumables.length >= CONFIG.MAX_CONSUMABLES) return { ok: false, reason: "full" };
+      s.money -= item.spectral.price;
+      s.consumables.push(item.spectral);
+      item.sold = true;
+      this._log(`🛒 购买幻灵牌【${item.spectral.name}】 -$${item.spectral.price}`, "buy");
+      this.emit("change");
+      return { ok: true };
+    }
     reroll() {
       const s = this.state;
       if (s.money < CONFIG.REROLL_COST) return { ok: false };
@@ -603,6 +799,7 @@
       s.shopItems = this.rollShop();
       s.shopPlanets = this.rollPlanets();
       s.shopTarots = this.rollTarots();
+      s.shopSpectrals = this.rollSpectrals();
       this._log(`🔄 刷新商店 -$${CONFIG.REROLL_COST}`, "info");
       this.emit("change");
       return { ok: true };
@@ -623,7 +820,7 @@
         return { ok: true, kind: "planet", target: c.target };
       }
 
-      if (c.kind === "tarot") {
+      if (c.kind === "tarot" || c.kind === "spectral") {
         const [min, max] = c.needCards || [0, 0];
         const ids = selectedCardIds || [];
         // 需要选牌但数量不符 → 要求外层进入选牌模式
@@ -633,12 +830,17 @@
           }
         }
         const chosen = s.hand.filter((card) => ids.includes(card.id));
+        // 给 apply 提供造牌/取 id 工具
+        s._makeRandomCard = (rank) => makeRandomCard(rank);
+        s._nextCardId = () => nextCardId();
         const note = c.apply(chosen, s) || "";
         s.consumables.splice(idx, 1);
-        this.emit("consumableUsed", { kind: "tarot", name: c.name, note, cardIds: ids });
-        this._log(`🔮 使用塔罗牌【${c.name}】 ${note}`, "good");
+        const label = c.kind === "tarot" ? "塔罗牌" : "幻灵牌";
+        const icon = c.kind === "tarot" ? "🔮" : "👻";
+        this.emit("consumableUsed", { kind: c.kind, name: c.name, note, cardIds: ids });
+        this._log(`${icon} 使用${label}【${c.name}】 ${note}`, "good");
         this.emit("change");
-        return { ok: true, kind: "tarot", name: c.name, note };
+        return { ok: true, kind: c.kind, name: c.name, note };
       }
       return { ok: false };
     }
