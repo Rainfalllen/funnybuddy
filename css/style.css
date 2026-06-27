@@ -587,7 +587,8 @@ body::before {
 }
 
 /* ===== 牌面右下角 × 卖出按钮 ===== */
-.joker .joker-x {
+.joker .joker-x,
+.consumable .cons-x {
   position: absolute;
   top: 3px;
   right: 3px;
@@ -609,29 +610,59 @@ body::before {
   transition: opacity .15s ease, transform .15s cubic-bezier(.2,.8,.3,1.4), box-shadow .15s ease;
 }
 /* 鼠标 hover 时显示 */
-.joker:hover .joker-x { opacity: 1; transform: scale(1); }
-.joker .joker-x:hover { box-shadow: 0 2px 8px #000a, 0 0 10px #ffd54a, 0 0 0 2px #ffd54a; }
-.joker .joker-x:active { transform: scale(.92); }
+.joker:hover .joker-x,
+.consumable:hover .cons-x { opacity: 1; transform: scale(1); }
+.joker .joker-x:hover,
+.consumable .cons-x:hover { box-shadow: 0 2px 8px #000a, 0 0 10px #ffd54a, 0 0 0 2px #ffd54a; }
+.joker .joker-x:active,
+.consumable .cons-x:active { transform: scale(.92); }
 /* 触屏：常驻显示（不依赖 hover）*/
 @media (hover: none) {
-  .joker .joker-x { opacity: 1; transform: scale(1); }
+  .joker .joker-x,
+  .consumable .cons-x { opacity: 1; transform: scale(1); }
 }
 
-/* 触发时附加的金色光环（DOM 动态加入） */
+/* 触发时附加的光环（DOM 动态加入，颜色由 --ring-color 决定） */
 .joker .joker-ring {
   position: absolute;
   inset: -4px;
   border-radius: 14px;
-  border: 2px solid var(--gold);
-  box-shadow: 0 0 24px #ffd54acc, inset 0 0 16px #ffd54a88;
+  --ring-color: var(--gold);
+  border: 2px solid var(--ring-color);
+  box-shadow: 0 0 24px var(--ring-color), inset 0 0 16px #ffffff66;
   pointer-events: none;
-  animation: ringPulse .6s ease-out forwards;
+  animation: ringPulse .65s ease-out forwards;
   z-index: 3;
 }
 @keyframes ringPulse {
   0%   { opacity: 0; transform: scale(.7); }
   35%  { opacity: 1; transform: scale(1.05); }
   100% { opacity: 0; transform: scale(1.35); }
+}
+/* 彩虹流光环（xmult 高光时刻）：用 conic 渐变 + mask 只显示边框，并旋转色相 */
+.joker .joker-ring.rainbow {
+  border: 3px solid transparent;
+  background: conic-gradient(from 0deg, #ff4af0, #ffd54a, #4aff9e, #4aa3e4, #b14aff, #ff4af0) border-box;
+  box-shadow: 0 0 30px #ff4af0aa, 0 0 46px #ffd54a66;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+          mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: ringPulse .68s ease-out forwards, ringSpin .68s linear;
+}
+@keyframes ringSpin { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(180deg); } }
+
+/* xmult 专属：更夸张的腾空触发动画 + 洋红强光 */
+.joker.triggered.fx-xmult {
+  animation: jokerFireBig .6s cubic-bezier(.2,.7,.3,1.4);
+  z-index: 7;
+}
+@keyframes jokerFireBig {
+  0%   { transform: translateY(0) scale(1) rotate(0); }
+  22%  { transform: translateY(-32px) scale(1.34) rotate(-8deg);
+         box-shadow: 0 0 0 5px #ff4af0, 0 0 52px #ff4af0, 0 0 80px #ffd54a88, 0 22px 38px #000c; }
+  55%  { transform: translateY(-14px) scale(1.16) rotate(7deg); }
+  100% { transform: translateY(0) scale(1) rotate(0); }
 }
 
 /* tooltip */
@@ -1275,6 +1306,16 @@ body::before {
   40% { transform: translateY(-30px) scale(1.18) rotate(2deg); }
   100% { transform: translateY(0) scale(1); }
 }
+/* 带增强/版本/幸运的牌触发时：金色脉冲描边，更亮更跳 */
+.card.scoring.scoring-special {
+  animation: scorePopSpecial .46s ease;
+  box-shadow: 0 18px 30px rgba(0,0,0,.55), 0 0 30px #ffd54add, 0 0 0 3px #ffd54a;
+}
+@keyframes scorePopSpecial {
+  0% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-38px) scale(1.24) rotate(-3deg); filter: brightness(1.3) saturate(1.3); }
+  100% { transform: translateY(0) scale(1); filter: none; }
+}
 
 /* ============================================================
  * 计分公式区动效
@@ -1311,12 +1352,37 @@ body::before {
 #flash.blue  { background: radial-gradient(circle, #4aa3e455, transparent 70%); animation: flashFx .5s ease; }
 @keyframes flashFx { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
 
-.shake { animation: shake .4s cubic-bezier(.36,.07,.19,.97); }
+/* 全屏震动已取消：保留类名但不再产生位移晃动，避免眩晕。
+ * 打击感改由下方的缩放脉冲（.punch / .punch-strong）承担。 */
+.shake { animation: none !important; }
+/* @keyframes shake 仍保留，供塔罗输入错误提示（.shake-hint）的局部小抖动复用 */
 @keyframes shake {
   10%,90% { transform: translateX(-2px); }
   20%,80% { transform: translateX(4px); }
   30%,50%,70% { transform: translateX(-8px); }
   40%,60% { transform: translateX(8px); }
+}
+
+/* ============================================================
+ * Balatro 式打击脉冲：缩放回弹（替代屏幕震动，无位移晃动）
+ * 用于强力计分时刻——尤其 ×倍率结算，数字猛地放大再回弹，
+ * 配合发光带来「砸下去」的打击感，却不会让整屏晃动。
+ * ============================================================ */
+.punch { animation: punchPulse .34s cubic-bezier(.2,.7,.3,1.4); }
+@keyframes punchPulse {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.13); }
+  100% { transform: scale(1); }
+}
+.punch-strong {
+  animation: punchPulseStrong .46s cubic-bezier(.2,.7,.3,1.5);
+  will-change: transform, filter;
+}
+@keyframes punchPulseStrong {
+  0%   { transform: scale(1); filter: brightness(1); }
+  26%  { transform: scale(1.26); filter: brightness(1.6) drop-shadow(0 0 16px #ff4af0aa); }
+  60%  { transform: scale(.98); }
+  100% { transform: scale(1); filter: brightness(1); }
 }
 
 #fxLayer { position: fixed; inset: 0; pointer-events: none; z-index: 250; }
@@ -1650,6 +1716,225 @@ body {
   .jokers-row .card-strip { min-height: 104px; flex-wrap: nowrap; overflow-x: auto; }
   /* 横屏时按钮回归普通流式，避免遮挡 */
   #actions { position: static; padding: 4px; background: none; }
+}
+
+/* ============================================================
+ * 封面 / 主菜单（局外界面）
+ * ============================================================ */
+.menu-overlay {
+  z-index: 120;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 50% 0%, #3d7a5ecc, #16291fee 60%, #07110bf2 100%);
+  backdrop-filter: blur(10px) saturate(1.15);
+  overflow: hidden;
+}
+/* 中央缓慢呼吸的金色光晕 */
+.menu-overlay .menu-aura {
+  position: absolute;
+  width: 120vmin;
+  height: 120vmin;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle, #ffd86622, transparent 55%),
+    radial-gradient(circle at 40% 40%, #58adf01c, transparent 50%),
+    radial-gradient(circle at 60% 60%, #ef5a5a1a, transparent 50%);
+  filter: blur(8px);
+  animation: menuAura 9s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes menuAura {
+  0%   { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: .8; }
+  100% { transform: translate(-50%, -50%) scale(1.15) rotate(12deg); opacity: 1; }
+}
+
+/* 扇形扑克牌阵 */
+.menu-fan {
+  position: relative;
+  height: 200px;
+  width: 100%;
+  max-width: 460px;
+  margin-bottom: 6px;
+  pointer-events: none;
+  z-index: 2;
+}
+.menu-fan .fan-card {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 96px;
+  height: 134px;
+  margin-left: -48px;
+  border-radius: 11px;
+  background: linear-gradient(160deg, #fff, #e9eef0);
+  border: 2px solid #ffffffcc;
+  box-shadow: 0 12px 26px #000a, inset 0 0 0 3px #ffffff66;
+  transform-origin: 50% 150%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  animation: fanFloat 5s ease-in-out infinite alternate;
+}
+.menu-fan .fan-card .rank { font-size: 30px; line-height: 1; }
+.menu-fan .fan-card .suit { font-size: 34px; line-height: 1; margin-top: 2px; }
+.menu-fan .fan-card.c-red  { color: #e0392f; }
+.menu-fan .fan-card.c-black { color: #1c2530; }
+.menu-fan .fan-card.fan-joker {
+  background: linear-gradient(160deg, #2a1840, #45205f);
+  border-color: #ffd866;
+  box-shadow: 0 16px 32px #000c, 0 0 26px #b14aff88, inset 0 0 0 3px #ffd86655;
+  z-index: 5;
+}
+.menu-fan .fan-card.fan-joker .jk { font-size: 52px; filter: drop-shadow(0 2px 6px #000a); }
+/* 五张牌的扇形角度 */
+.menu-fan .fan-card:nth-child(1) { transform: rotate(-26deg) translateY(8px); }
+.menu-fan .fan-card:nth-child(2) { transform: rotate(-13deg) translateY(-6px); }
+.menu-fan .fan-card:nth-child(3) { transform: rotate(0deg)   translateY(-16px) scale(1.08); animation-duration: 4s; }
+.menu-fan .fan-card:nth-child(4) { transform: rotate(13deg)  translateY(-6px); }
+.menu-fan .fan-card:nth-child(5) { transform: rotate(26deg)  translateY(8px); }
+@keyframes fanFloat {
+  0%   { margin-bottom: 0; }
+  100% { margin-bottom: 10px; }
+}
+
+/* 内容容器 */
+.menu-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  animation: overlayIn .4s ease;
+}
+.menu-logo { text-align: center; }
+.menu-title {
+  position: relative;
+  font-size: 86px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  line-height: 1;
+  background: linear-gradient(180deg, #fff3c4 0%, #ffd866 40%, #e0a82a 75%, #b9791a 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 10px #000a);
+  animation: titlePulse 3.2s ease-in-out infinite;
+}
+/* 标题描边底层（用 data-text 复制一层做金边光晕） */
+.menu-title::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 2px #ffd86655;
+  z-index: -1;
+  filter: blur(.5px);
+}
+@keyframes titlePulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 4px 10px #000a); }
+  50%      { transform: scale(1.03); filter: drop-shadow(0 4px 18px #ffd86688); }
+}
+.menu-sub {
+  margin-top: 12px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: none;
+}
+
+/* 菜单按钮组 */
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(86vw, 300px);
+}
+.btn-menu {
+  width: 100%;
+  padding: 14px 18px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  border-radius: 12px;
+  border: 1px solid #ffffff1f;
+  background: linear-gradient(150deg, var(--panel-light), var(--panel));
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: var(--shadow), inset 0 1px 0 #ffffff14;
+  transition: transform .12s ease, box-shadow .15s ease, filter .15s ease;
+}
+.btn-menu:hover { transform: translateY(-2px); filter: brightness(1.12); box-shadow: var(--shadow-lg); }
+.btn-menu:active { transform: translateY(0) scale(.98); }
+.btn-menu-new {
+  background: linear-gradient(150deg, #ffe08a, #e0a82a);
+  color: #2a1c05;
+  border-color: #fff3c4aa;
+  box-shadow: 0 8px 22px #00000055, 0 0 18px #ffd86655, inset 0 1px 0 #ffffff66;
+}
+.btn-menu-continue {
+  background: linear-gradient(150deg, #5fd29a, #2f8e5e);
+  color: #062014;
+  border-color: #bff0d6aa;
+}
+.btn-menu:disabled,
+.btn-menu.disabled {
+  opacity: .4;
+  cursor: not-allowed;
+  filter: grayscale(.6);
+  transform: none;
+  box-shadow: var(--shadow);
+}
+.menu-footer {
+  position: relative;
+  z-index: 3;
+  margin-top: 22px;
+  font-size: 12px;
+  color: #ffffff55;
+  letter-spacing: .5px;
+}
+
+/* 玩法说明弹层 */
+.help-box {
+  width: min(92vw, 560px);
+  max-height: 86vh;
+  overflow-y: auto;
+  text-align: left;
+  background: linear-gradient(150deg, var(--panel-light), var(--panel));
+  padding: 26px 28px;
+  border-radius: 18px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid #ffffff14;
+}
+.help-box h2 { margin-bottom: 14px; color: var(--gold); }
+.help-content p { margin: 0 0 12px; line-height: 1.7; font-size: 14px; color: #e6efe9; }
+.help-content b { color: var(--gold); }
+.help-content .chip { color: var(--chip); font-weight: 800; }
+.help-content .mult { color: var(--mult); font-weight: 800; }
+.help-box .btn { margin-top: 8px; }
+
+/* 结束弹层按钮组 */
+.end-actions { display: flex; gap: 12px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+
+/* 移动端封面适配 */
+@media (max-width: 720px) {
+  .menu-title { font-size: 60px; letter-spacing: 4px; }
+  .menu-sub { font-size: 12px; }
+  .menu-fan { height: 160px; }
+  .menu-fan .fan-card { width: 72px; height: 102px; margin-left: -36px; }
+  .menu-fan .fan-card .rank { font-size: 22px; }
+  .menu-fan .fan-card .suit { font-size: 26px; }
+  .menu-fan .fan-card.fan-joker .jk { font-size: 40px; }
+  .menu-content { gap: 20px; }
+}
+@media (max-height: 640px) {
+  .menu-fan { height: 120px; }
+  .menu-title { font-size: 52px; }
+  .menu-content { gap: 14px; }
 }
 
 /* ---------- 安装后的 PWA 独立模式 ---------- */

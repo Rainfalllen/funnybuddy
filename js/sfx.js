@@ -77,7 +77,27 @@
     tone({ freq: 980, freqEnd: 1480, dur: 0.10, type: "sine", gain: 0.12, attack: 0.002, decay: 0.12 });
   }
 
+  // ---------- 小丑牌触发音效（按特效类型区分音色） ----------
+  // 加筹码：清脆短促的高音“嘀”
+  function chip() {
+    tone({ freq: 1040, freqEnd: 1320, dur: 0.06, type: "triangle", gain: 0.07, attack: 0.002, decay: 0.07 });
+  }
+  // 加倍率：带攻击感的锯齿上扬
+  function mult() {
+    tone({ freq: 520, freqEnd: 780, dur: 0.11, type: "sawtooth", gain: 0.10, attack: 0.003, decay: 0.12 });
+  }
+  // 乘区：三连上行琶音 + 高频收尾，营造“爆发”感
+  function xmult() {
+    tone({ freq: 660, dur: 0.09, type: "sawtooth", gain: 0.11, attack: 0.003, decay: 0.10 });
+    setTimeout(() => tone({ freq: 990, dur: 0.09, type: "sawtooth", gain: 0.11, attack: 0.003, decay: 0.10 }), 55);
+    setTimeout(() => tone({ freq: 1480, freqEnd: 2080, dur: 0.20, type: "square", gain: 0.11, attack: 0.003, decay: 0.22 }), 110);
+  }
+  // 随机：滑音颤动“呜~”
+  function warble() {
+    tone({ freq: 380, freqEnd: 1180, dur: 0.20, type: "sine", gain: 0.10, attack: 0.003, decay: 0.22 });
+  }
+
   function setEnabled(v) { enabled = !!v; }
 
-  window.SFX = { coin, buy, click, pop, setEnabled };
+  window.SFX = { coin, buy, click, pop, chip, mult, xmult, warble, setEnabled };
 })();

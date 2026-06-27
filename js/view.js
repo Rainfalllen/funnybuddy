@@ -41,7 +41,9 @@
         rerollBtn: $("rerollBtn"), nextRoundBtn: $("nextRoundBtn"),
         blindOverlay: $("blindOverlay"), blindSelectTitle: $("blindSelectTitle"), blindCards: $("blindCards"),
         openShopBtn: $("openShopBtn"),
-        endOverlay: $("endOverlay"), endTitle: $("endTitle"), endMsg: $("endMsg"), restartBtn: $("restartBtn"),
+        endOverlay: $("endOverlay"), endTitle: $("endTitle"), endMsg: $("endMsg"), restartBtn: $("restartBtn"), menuBtn: $("menuBtn"),
+        menuOverlay: $("menuOverlay"), menuContinue: $("menuContinue"), menuNewGame: $("menuNewGame"),
+        menuHelp: $("menuHelp"), menuSound: $("menuSound"), helpOverlay: $("helpOverlay"), helpClose: $("helpClose"),
         floaters: $("floaters"),
         bgfx: $("bgfx"), fxLayer: $("fxLayer"), flash: $("flash"),
         game: $("game"),
@@ -65,6 +67,33 @@
       this.el.logClear.onclick = () => { this.el.logList.innerHTML = ""; };
       if (this.el.deckViewBtn) this.el.deckViewBtn.onclick = () => this.showDeckViewer();
       if (this.el.deckCloseBtn) this.el.deckCloseBtn.onclick = () => this.el.deckOverlay.classList.add("hidden");
+
+      // ---------- 主菜单 / 封面（局外界面） ----------
+      if (this.el.menuNewGame) this.el.menuNewGame.onclick = () => { if (window.SFX) window.SFX.click(); h.onMenuNewGame(); };
+      if (this.el.menuContinue) this.el.menuContinue.onclick = () => { if (window.SFX) window.SFX.click(); h.onMenuContinue(); };
+      if (this.el.menuHelp) this.el.menuHelp.onclick = () => { if (window.SFX) window.SFX.click(); this.el.helpOverlay.classList.remove("hidden"); };
+      if (this.el.helpClose) this.el.helpClose.onclick = () => this.el.helpOverlay.classList.add("hidden");
+      if (this.el.menuBtn) this.el.menuBtn.onclick = () => h.onBackToMenu();
+      // 音效开关（持久化到 localStorage）
+      this._soundOn = this._loadSoundPref();
+      if (window.SFX) window.SFX.setEnabled(this._soundOn);
+      this._updateSoundLabel();
+      if (this.el.menuSound) this.el.menuSound.onclick = () => this._toggleSound();
+    }
+
+    // ---------- 音效偏好 ----------
+    _loadSoundPref() {
+      try { return localStorage.getItem("funnybuddy_sound") !== "off"; } catch (e) { return true; }
+    }
+    _toggleSound() {
+      this._soundOn = !this._soundOn;
+      if (window.SFX) window.SFX.setEnabled(this._soundOn);
+      try { localStorage.setItem("funnybuddy_sound", this._soundOn ? "on" : "off"); } catch (e) { /* ignore */ }
+      if (this._soundOn && window.SFX) window.SFX.click();
+      this._updateSoundLabel();
+    }
+    _updateSoundLabel() {
+      if (this.el.menuSound) this.el.menuSound.textContent = this._soundOn ? "🔊 音效：开" : "🔇 音效：关";
     }
 
     // 背景漂浮光点
@@ -271,13 +300,14 @@
       if (c.kind === "tarot" || c.kind === "spectral") {
         effectHtml = `<div class="cons-effect">${c.desc}</div>`;
         const needSel = (c.needCards && c.needCards[1] > 0) ? "（需选牌）" : "";
-        tipHtml = `<b>${c.name}</b><br>${c.desc}<br><span style="color:#9bb0a8">点击使用${needSel} · 右键/长按卖出</span>`;
+        tipHtml = `<b>${c.name}</b><br>${c.desc}<br><span style="color:#9bb0a8">点击使用${needSel} · 右键/× 卖出</span>`;
       } else {
         const target = c.target ? (window.Cards.HAND_TYPES[c.target] || {}).name : "";
         effectHtml = `<div class="cons-effect">升级<br><b>${target}</b></div>`;
-        tipHtml = `<b>${c.name}</b><br>使用后升级牌型【${target}】等级<br><span style="color:#9bb0a8">点击使用 · 右键/长按卖出</span>`;
+        tipHtml = `<b>${c.name}</b><br>使用后升级牌型【${target}】等级<br><span style="color:#9bb0a8">点击使用 · 右键/× 卖出</span>`;
       }
       node.innerHTML = `
+        <button class="cons-x" title="卖出" aria-label="卖出">×</button>
         <div class="cons-face">${c.face}</div>
         <div class="cons-name">${c.name}</div>
         ${effectHtml}
@@ -290,19 +320,14 @@
         e.preventDefault();
         this.handlers.onSellConsumable(idx);
       });
-      // 触屏：长按卖出
-      const isTouchEnv = window.matchMedia("(hover: none)").matches;
-      if (isTouchEnv) {
-        let timer = null, longed = false;
-        node.addEventListener("touchstart", () => {
-          longed = false;
-          timer = setTimeout(() => { longed = true; this.handlers.onSellConsumable(idx); }, 600);
-        }, { passive: true });
-        const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
-        node.addEventListener("touchend", cancel);
-        node.addEventListener("touchmove", cancel);
-        // 拦截长按后的 click（避免又触发使用）
-        node.addEventListener("click", (e) => { if (longed) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+      // × 按钮卖出（移动端/桌面通用，阻止冒泡避免触发“使用”）
+      const xBtn = node.querySelector(".cons-x");
+      if (xBtn) {
+        xBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.handlers.onSellConsumable(idx);
+        });
+        xBtn.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
       }
       return node;
     }
@@ -393,40 +418,68 @@
       for (const step of result.steps) {
         if (step.kind === "card") {
           const node = nodeByCardId[step.cardId];
-          if (node) { node.classList.add("scoring"); this.burst(node, "#4aa3e4", 8); }
+          // 按这张牌触发的特殊属性（增强/版本/幸运）决定粒子颜色，让计分更有辨识度
+          const tags = step.tags || [];
+          let col = "#4aa3e4";          // 默认蓝（基础筹码）
+          if (tags.includes("edition")) col = "#c39bff";   // 版本：紫
+          if (tags.includes("enh")) col = "#46e8b0";       // 增强：青
+          if (tags.includes("lucky") || tags.includes("luckymoney")) col = "#ffd54a"; // 幸运：金
+          const special = tags.length > 0;
+          if (node) {
+            node.classList.add("scoring");
+            if (special) node.classList.add("scoring-special");
+            this.burst(node, col, special ? 14 : 8);
+          }
           e.chipsView.textContent = step.runChips;
           this._bump(e.chipsView);
-          if (node) this._floaterAt(node, "+" + step.chips, "chip");
-          await sleep(170);
-          if (node) node.classList.remove("scoring");
+          if (node) {
+            if (step.repeat) this._floaterAt(node, "↻", "mult", -22); // 红封重复触发标记
+            this._floaterAt(node, "+" + step.chips, "chip");
+          }
+          await sleep(special ? 190 : 160);
+          if (node) node.classList.remove("scoring", "scoring-special");
         } else if (step.kind === "joker") {
           const node = jokerNodes[step.jokerIndex];
+          const fx = step.fx || {};
+          const color = fx.color || "#ffd54a";
+          const glow = fx.glow || color;
           if (node) {
             node.classList.add("triggered");
-            // 触发时叠加金色光环 ring 元素
-            const ring = document.createElement("div");
-            ring.className = "joker-ring";
-            node.appendChild(ring);
-            setTimeout(() => ring.remove(), 600);
+            if (fx.big) node.classList.add("fx-xmult");
+            // 触发光环（颜色 / 彩虹由 fx 决定）
+            if (fx.ring) {
+              const ring = document.createElement("div");
+              ring.className = "joker-ring" + (fx.rainbow ? " rainbow" : "");
+              ring.style.setProperty("--ring-color", fx.ringColor || color);
+              node.appendChild(ring);
+              setTimeout(() => ring.remove(), 680);
+            }
           }
           e.chipsView.textContent = step.runChips;
           e.multView.textContent = round2(step.runMult);
           if (node) {
-            const isMult = step.dMult || step.xmult != null;
-            // 先金色火花，再补一圈对应色粒子
-            this.burst(node, "#ffd54a", 10);
-            this.burst(node, isMult ? "#e44b4b" : "#4aa3e4", 14);
+            // 双层粒子：外圈高光色 + 内圈主色，数量由 fx 决定
+            this.burst(node, glow, Math.max(6, Math.round((fx.particle || 14) * 0.6)));
+            this.burst(node, color, fx.particle || 14);
             if (step.dChips) { this._floaterAt(node, "+" + step.dChips, "chip", -8); this._bump(e.chipsView); }
-            if (step.dMult)  { this._floaterAt(node, "+" + step.dMult, "mult", -8); this._bump(e.multView); }
+            if (step.dMult)  { this._floaterAt(node, "+" + step.dMult, fx.label || "mult", -8); this._bump(e.multView); }
             if (step.xmult != null) {
               this._floaterAt(node, "×" + step.xmult, "mult", -8);
-              this._bump(e.multView);
-              this.flash("red"); this.screenShake();
-              this.burst(node, "#ffd54a", 20);
+              // ×倍率高光时刻：倍率数字猛地放大回弹 + 公式区整体脉冲（取代屏幕震动的打击感）
+              this._punch(e.multView, true);
+              this._punch(e.multView.parentElement, true);
+              this.burst(node, "#ffe27a", 22);
             }
+            // 音效（fx.sound 对应 window.SFX 上的函数名）
+            if (window.SFX && fx.sound && typeof window.SFX[fx.sound] === "function") {
+              window.SFX[fx.sound]();
+            }
+            // 屏幕震动已取消：强力 ×倍率仍保留红屏闪光强调；
+            // 打击感统一由 _punch 缩放脉冲承担（见上方 xmult 分支），不再晃屏。
+            if (fx.shake >= 2) this.flash("red");
           }
-          await sleep(320);
-          if (node) node.classList.remove("triggered");
+          await sleep(fx.big ? 380 : 300);
+          if (node) node.classList.remove("triggered", "fx-xmult");
         }
       }
 
@@ -440,7 +493,8 @@
       e.roundScore.classList.add("bump");
       setTimeout(() => e.roundScore.classList.remove("bump"), 400);
       this.flash(result.outcome === "win" ? "gold" : "blue");
-      this.screenShake();
+      // 屏幕震动已取消：总分落定的强调由 roundScore 的 scoreBig 弹跳 + 公式区脉冲承担
+      this._punch(e.multView.parentElement, true);
       await sleep(600);
 
       // 清桌
@@ -783,6 +837,24 @@
     hideEnd() { this.el.endOverlay.classList.add("hidden"); }
 
     // ============================================================
+    // 封面 / 主菜单（局外界面）
+    // ============================================================
+    showMainMenu(opts) {
+      const hasSave = !!(opts && opts.hasSave);
+      if (!this.el.menuOverlay) return;
+      this.el.menuOverlay.classList.remove("hidden");
+      // 无存档时禁用「继续游戏」
+      const cont = this.el.menuContinue;
+      if (cont) {
+        cont.disabled = !hasSave;
+        cont.classList.toggle("disabled", !hasSave);
+      }
+    }
+    hideMainMenu() {
+      if (this.el.menuOverlay) this.el.menuOverlay.classList.add("hidden");
+    }
+
+    // ============================================================
     // 飘字
     // ============================================================
     _floater(text, type, x, y) {
@@ -825,12 +897,19 @@
     // ============================================================
     // 屏幕特效
     // ============================================================
-    screenShake() {
-      const g = this.el.game;
-      g.classList.remove("shake");
-      void g.offsetWidth; // 重置动画
-      g.classList.add("shake");
-      setTimeout(() => g.classList.remove("shake"), 450);
+    // 屏幕震动已取消（保留方法名以兼容所有调用点，避免改动散落各处）。
+    // 打击感统一改由 _punch 缩放脉冲承担，既有冲击力又不会晃屏致晕。
+    screenShake() { /* no-op：屏幕震动已取消 */ }
+
+    // Balatro 式打击脉冲：让目标元素猛地放大再回弹（无位移晃动）。
+    // strong=true 时幅度更大并带发光，用于 ×倍率等高光时刻。
+    _punch(el, strong = false) {
+      if (!el) return;
+      const cls = strong ? "punch-strong" : "punch";
+      el.classList.remove("punch", "punch-strong");
+      void el.offsetWidth; // 重置动画
+      el.classList.add(cls);
+      setTimeout(() => el.classList.remove(cls), strong ? 470 : 350);
     }
 
     flash(color = "gold") {

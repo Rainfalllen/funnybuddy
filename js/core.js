@@ -6,7 +6,7 @@
  * ============================================================ */
 (function () {
   const { HAND_TYPES, ENHANCEMENTS, EDITIONS, getHandStats, buildDeck, shuffle, evaluateHand, makeRandomCard, nextCardId } = window.Cards;
-  const { JOKER_POOL } = window.Jokers;
+  const { JOKER_POOL, JOKER_FX } = window.Jokers;
   const { PLANET_POOL } = window.Planets;
   const { TAROT_POOL } = window.Tarots || { TAROT_POOL: [] };
   const { SPECTRAL_POOL } = window.Spectrals || { SPECTRAL_POOL: [] };
@@ -488,9 +488,16 @@
           edApplied = !!(ed.chips || ed.mult || ed.xmult);
         }
         if (triggered || edApplied) {
+          // 选择触发特效（逻辑/表现分离的数据契约）：
+          // 优先采用小丑牌自己声明的 fx；未声明时按数值变化兜底推断。
+          // 任何带 xmult 变化（含 polychrome 版本）一律升级为 xmult 高光特效。
+          let fxKey = j.fx;
+          if (ctx.xmult !== before.xmult) fxKey = "xmult";
+          else if (!fxKey) fxKey = (ctx.mult !== before.mult) ? "mult" : "chips";
           steps.push({
             kind: "joker",
             jokerIndex: idx,
+            fx: JOKER_FX[fxKey] || JOKER_FX.chips,
             dChips: ctx.chips - before.chips,
             dMult: ctx.mult - before.mult,
             xmult: ctx.xmult !== before.xmult ? round2(ctx.xmult) : null,

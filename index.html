@@ -23,6 +23,51 @@
   <!-- 背景漂浮光点特效 -->
   <div id="bgfx"></div>
 
+  <!-- 封面 / 主菜单（局外界面） -->
+  <div id="menuOverlay" class="overlay menu-overlay">
+    <div class="menu-aura" aria-hidden="true"></div>
+
+    <!-- 装饰：扇形扑克牌阵 -->
+    <div class="menu-fan" aria-hidden="true">
+      <div class="fan-card c-red"><span class="rank">A</span><span class="suit">♥</span></div>
+      <div class="fan-card c-black"><span class="rank">K</span><span class="suit">♠</span></div>
+      <div class="fan-card fan-joker"><span class="jk">🤡</span></div>
+      <div class="fan-card c-red"><span class="rank">Q</span><span class="suit">♦</span></div>
+      <div class="fan-card c-black"><span class="rank">J</span><span class="suit">♣</span></div>
+    </div>
+
+    <div class="menu-content">
+      <div class="menu-logo">
+        <h1 class="menu-title" data-text="小丑牌">小丑牌</h1>
+        <div class="menu-sub">FUNNY&nbsp;BUDDY · 一个 Balatro 风格的卡牌肉鸽</div>
+      </div>
+
+      <div class="menu-buttons">
+        <button id="menuContinue" class="btn btn-menu btn-menu-continue">▶ 继续游戏</button>
+        <button id="menuNewGame" class="btn btn-menu btn-menu-new">＋ 开始新游戏</button>
+        <button id="menuHelp" class="btn btn-menu">？ 玩法说明</button>
+        <button id="menuSound" class="btn btn-menu">🔊 音效：开</button>
+      </div>
+
+      <div class="menu-footer">用 ♥ 打造 · 出牌、凑牌型、组小丑、滚雪球</div>
+    </div>
+  </div>
+
+  <!-- 玩法说明弹层 -->
+  <div id="helpOverlay" class="overlay hidden">
+    <div class="help-box">
+      <h2>🎴 玩法说明</h2>
+      <div class="help-content">
+        <p><b>目标</b>：每个盲注都有一条目标分数线，用有限的「出牌」次数把<b>本轮得分</b>打过线即可过关；连续击败小盲、大盲、Boss 盲注推进底注，通关全部底注即获胜。</p>
+        <p><b>计分</b>：得分 = <span class="chip">筹码</span> × <span class="mult">倍率</span>。打出的牌型（对子、顺子、同花……）提供基础筹码与倍率，用<b>行星牌</b>可永久升级牌型等级。</p>
+        <p><b>小丑牌</b>：核心 build。放在最上方一排，计分时<b>从左到右依次触发</b>，提供加筹码 / 加倍率 / ×倍率等强力效果，顺序会影响结算结果。</p>
+        <p><b>消耗牌</b>：🪐行星牌升级牌型；🔮塔罗牌改造手牌；👻幻灵牌效果激进。点击使用，× 卖出。</p>
+        <p><b>商店</b>：每轮结束用资金购买小丑牌与消耗牌，刷新可换新货。攒钱也会产生利息，权衡消费与滚雪球。</p>
+      </div>
+      <button id="helpClose" class="btn btn-sort">关闭</button>
+    </div>
+  </div>
+
   <div id="game">
     <!-- 顶部：盲注信息与计分 -->
     <header id="topbar">
@@ -174,7 +219,10 @@
     <div class="end-box">
       <h2 id="endTitle">游戏结束</h2>
       <p id="endMsg"></p>
-      <button id="restartBtn" class="btn btn-play">重新开始</button>
+      <div class="end-actions">
+        <button id="restartBtn" class="btn btn-play">重新开始</button>
+        <button id="menuBtn" class="btn btn-sort">返回主菜单</button>
+      </div>
     </div>
   </div>
 

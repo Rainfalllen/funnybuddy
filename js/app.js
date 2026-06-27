@@ -33,7 +33,7 @@
         busy = false;
         view.updateActionButtons();
         view.toastCenter("👄 只能打出【" + result.lockedName + "】");
-        view.screenShake();
+        view.flash("red");
         return;
       }
       await view.animateScore(result);
@@ -171,6 +171,26 @@
       core.openShop();
     },
     onRestart: () => { view.hideEnd(); core.newGame(); },
+    // ---------- 主菜单（局外界面） ----------
+    onMenuNewGame: () => {
+      if (core.hasSave() && !confirm("已有存档，开始新游戏会覆盖当前进度，确定吗？")) return;
+      view.hideMainMenu();
+      shopOpenedFrom = null;
+      core.newGame();
+    },
+    onMenuContinue: () => {
+      if (core.hasSave() && core.load()) {
+        view.hideMainMenu();
+        core.resume();
+      } else {
+        // 无有效存档：刷新菜单状态
+        view.showMainMenu({ hasSave: false });
+      }
+    },
+    onBackToMenu: () => {
+      view.hideEnd();
+      view.showMainMenu({ hasSave: core.hasSave() });
+    },
   };
 
   // 记录商店打开的来源："roundWin" | "blindSelect"
@@ -234,19 +254,16 @@
       }
     } else if (data.kind === "spectral") {
       view.toastCenter("👻 " + data.name + (data.note ? " · " + data.note : ""));
-      view.screenShake();
+      view.flash("red");
       // 幻灵牌可能增删手牌，重渲染
       setTimeout(() => view.renderHand(), 50);
     }
   });
 
   core.on("gameWin", (data) => { view.flash("gold"); view.showWin(data); });
-  core.on("gameLose", (data) => { view.flash("red"); view.screenShake(); view.showLose(data); });
+  core.on("gameLose", (data) => { view.flash("red"); view.showLose(data); });
 
-  // ---------- 启动 ----------
-  if (core.hasSave() && core.load()) {
-    core.resume();
-  } else {
-    core.newGame();
-  }
+  // ---------- 启动：先显示封面 / 主菜单（局外界面） ----------
+  // 不直接进游戏，由玩家选择「继续」或「开始新游戏」。
+  view.showMainMenu({ hasSave: core.hasSave() });
 })();
