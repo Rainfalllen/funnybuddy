@@ -312,19 +312,43 @@ body::before {
   background: linear-gradient(135deg, #ff7eb9, #4aa3e4);
   font-weight: 800;
 }
+/* 蜡封：三种封各有独立可辨的「图标 + 形状 + 光效」，不再仅靠颜色圆点区分。
+ * 金封=$（圆形金光）/ 红封=↻（圆角方块红光）/ 蓝封=✦（水滴形蓝光）。 */
 .card .card-seal {
   position: absolute;
-  bottom: 5px;
-  left: 5px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+  bottom: 4px;
+  left: 4px;
+  width: 14px;
+  height: 14px;
   z-index: 3;
-  box-shadow: 0 0 6px currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 1px #0008;
+  border: 1px solid #ffffffaa;
 }
-.card .card-seal.seal-gold { background: var(--gold); color: var(--gold); }
-.card .card-seal.seal-red  { background: var(--red);  color: var(--red); }
-.card .card-seal.seal-blue { background: var(--blue); color: var(--blue); }
+.card .card-seal::after { line-height: 1; }
+.card .card-seal.seal-gold {
+  background: radial-gradient(circle at 35% 30%, #fff1b8, var(--gold));
+  border-radius: 50%;
+  box-shadow: 0 0 7px var(--gold);
+}
+.card .card-seal.seal-gold::after { content: "$"; }
+.card .card-seal.seal-red {
+  background: radial-gradient(circle at 35% 30%, #ff9d9d, var(--red));
+  border-radius: 4px;
+  box-shadow: 0 0 7px var(--red);
+}
+.card .card-seal.seal-red::after { content: "↻"; }
+.card .card-seal.seal-blue {
+  background: radial-gradient(circle at 35% 30%, #b8e0ff, var(--blue));
+  border-radius: 50% 50% 50% 2px;
+  box-shadow: 0 0 7px var(--blue);
+}
+.card .card-seal.seal-blue::after { content: "✦"; }
 
 /* 增强底色 */
 .card.enh-mult   { background: linear-gradient(160deg, #ffd9d9, #ffb0b0); }
@@ -360,6 +384,29 @@ body::before {
 }
 .card.ed-foil::before {
   background: linear-gradient(135deg, #cfd8ff55, #fff3, #cfd8ff55);
+}
+/* 负片版本（若被附加到扑克牌）：深色反相 + 紫边辉光，独立可辨 */
+.card.ed-negative {
+  filter: invert(1) hue-rotate(180deg);
+  box-shadow: var(--shadow), 0 0 12px #b15cffaa;
+  outline: 1.5px solid #b15cff;
+}
+
+/* 版本角标按版本独立配色，避免三种版本角标同色难辨 */
+.card .card-badge.ed.ed-foil        { background: linear-gradient(135deg, #d6e0ff, #8fb0ff); }
+.card .card-badge.ed.ed-holographic { background: linear-gradient(135deg, #a0e8ff, #4aa3e4); }
+.card .card-badge.ed.ed-polychrome  { background: linear-gradient(135deg, #ff7eb9, #ffd54a, #57c7c4); }
+.card .card-badge.ed.ed-negative    { background: linear-gradient(135deg, #2b2b3a, #6a3fb0); }
+
+/* 消耗牌改造的分步演出：被改造的牌抬起、发光、回落 */
+.card.consumable-pop {
+  animation: consumablePop .5s cubic-bezier(.2,.7,.3,1.5);
+  z-index: 8;
+}
+@keyframes consumablePop {
+  0%   { transform: translateY(0) scale(1); }
+  30%  { transform: translateY(-16px) scale(1.14); filter: brightness(1.5) drop-shadow(0 0 14px #b07fe0cc); }
+  100% { transform: translateY(0) scale(1); }
 }
 
 /* ---------- 小丑牌（Balatro 风格） ---------- */
@@ -1898,7 +1945,14 @@ body {
   letter-spacing: .5px;
 }
 
-/* 玩法说明弹层 */
+/* 玩法说明弹层：独立模态窗口，置于最顶层。
+ * 普通 .overlay 为 z-index:100，会被侧边栏(150)、飘字(200)、特效层(250)、
+ * 全屏闪光(300) 盖住；这里单独抬到 500，确保无论在菜单还是游戏中都绝对置顶，
+ * 且遮罩拦截一切事件、不穿透到下层。 */
+#helpOverlay {
+  z-index: 500;
+  pointer-events: auto;
+}
 .help-box {
   width: min(92vw, 560px);
   max-height: 86vh;

@@ -89,14 +89,20 @@
         view.enterTarotMode(tarotSelect);
       }
     },
-    onTarotConfirm: () => {
-      if (!tarotSelect) return;
+    onTarotConfirm: async () => {
+      if (!tarotSelect || busy) return;
       const ids = Array.from(tarotSelect.chosen);
       const res = core.useConsumable(tarotSelect.idx, ids);
       if (res && res.ok) {
         if (window.SFX) window.SFX.buy();
         view.exitTarotMode();
         tarotSelect = null;
+        // 分步演出：此时 change 已渲染出改造后的最终手牌，逐张播放改造动画
+        busy = true;
+        try {
+          const color = res.kind === "spectral" ? "#ff6b9d" : "#b07fe0";
+          await view.playConsumableUse(ids, { color, note: res.note });
+        } finally { busy = false; }
       } else if (res && res.reason === "needSelect") {
         view.flashTarotHint(`需选择 ${res.min}~${res.max} 张牌`);
       }
@@ -240,23 +246,23 @@
     view.showShop();
   });
 
-  // 使用消耗牌特效
+  // 使用消耗牌的全局反馈（toast / 闪光）。
+  // 注意：选中牌的分步改造动画在 onTarotConfirm 里执行（那时手牌已渲染、节点稳定），
+  // 这里只做不会被 change 重渲覆盖的全局表现，避免重复与节点失效。
   core.on("consumableUsed", (data) => {
-    view.flash("gold");
     if (!data) return;
     if (data.kind === "planet" && window.Cards) {
       const name = (window.Cards.HAND_TYPES[data.target] || {}).name || "";
       view.toastCenter("🪐 " + name + " 升级！");
+      view.flash("blue");
+      // 牌型升级：公式区脉冲强调（无需选牌，故在此处直接演出）
+      if (view.el.multView) view._punch(view.el.multView.parentElement, true);
     } else if (data.kind === "tarot") {
       view.toastCenter("🔮 " + data.name + (data.note ? " · " + data.note : ""));
-      if (data.cardIds && data.cardIds.length) {
-        setTimeout(() => view.highlightCards(data.cardIds), 50);
-      }
+      view.flash("gold");
     } else if (data.kind === "spectral") {
       view.toastCenter("👻 " + data.name + (data.note ? " · " + data.note : ""));
       view.flash("red");
-      // 幻灵牌可能增删手牌，重渲染
-      setTimeout(() => view.renderHand(), 50);
     }
   });
 

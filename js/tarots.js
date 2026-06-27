@@ -84,7 +84,7 @@ const TAROT_POOL = [
   // 给钱
   {
     id: "the_hermit", name: "隐士", face: "🪙", price: 3, needCards: [0, 0],
-    desc: "立即获得 <b>$10</b>（上限翻倍当前资金）",
+    desc: "<b>翻倍</b>当前资金（最多 +$20）",
     apply: (_cards, game) => {
       const gain = Math.min(20, Math.max(0, game.money));
       game.money += gain;
@@ -92,6 +92,11 @@ const TAROT_POOL = [
     },
   },
 ];
+
+// 统一补上 kind 标识：所有塔罗牌均为 "tarot"。
+// （此前各对象未显式声明 kind，导致购买后 useConsumable 无法匹配分支、
+//  且存档时 kind 为 undefined 而丢失——这里集中修复。）
+TAROT_POOL.forEach((t) => { t.kind = "tarot"; });
 
 const RANK_LABELS = { 2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7", 8: "8", 9: "9", 10: "10", 11: "J", 12: "Q", 13: "K", 14: "A" };
 const RANK_CHIPS = { 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 11: 10, 12: 10, 13: 10, 14: 11 };

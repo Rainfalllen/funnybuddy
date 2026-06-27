@@ -179,7 +179,7 @@
       }
       if (ed) {
         const e = C.EDITIONS[ed];
-        if (e) badges.push(`<span class="card-badge ed" title="${e.name}">${e.name[0]}</span>`);
+        if (e) badges.push(`<span class="card-badge ed ed-${ed}" title="${e.name}">${e.name[0]}</span>`);
       }
       const sealHtml = seal ? `<span class="card-seal seal-${seal}" title="${C.SEALS[seal].name}"></span>` : "";
 
@@ -480,6 +480,20 @@
           }
           await sleep(fx.big ? 380 : 300);
           if (node) node.classList.remove("triggered", "fx-xmult");
+        } else if (step.kind === "held") {
+          // 留手钢铁牌：在手牌区高亮该牌并施加 ×倍率（不在打出区）
+          const node = this.el.hand.querySelector(`[data-card-id="${step.cardId}"]`);
+          if (node) {
+            node.classList.add("scoring", "scoring-special");
+            this.burst(node, "#c7d3df", 16);
+            this._floaterAt(node, step.label || "×1.5", "mult", -8);
+          }
+          e.multView.textContent = round2(step.runMult);
+          this._punch(e.multView, true);
+          this._punch(e.multView.parentElement, true);
+          if (window.SFX && typeof window.SFX.xmult === "function") window.SFX.xmult();
+          await sleep(320);
+          if (node) node.classList.remove("scoring", "scoring-special");
         }
       }
 
@@ -867,10 +881,12 @@
       setTimeout(() => f.remove(), 1000);
     }
     _floaterAt(node, text, type, dy = 0) {
+      if (!node) return; // 异步演出期间节点可能已被重渲移除，避免 getBoundingClientRect 崩溃
       const r = node.getBoundingClientRect();
       this._floater(text, type, r.left + r.width / 2 - 10, r.top - 10 + dy);
     }
     floaterMoney(text) {
+      if (!this.el.moneyView) return;
       const r = this.el.moneyView.getBoundingClientRect();
       this._floater(text, "money", r.left, r.top + 24);
     }
@@ -969,6 +985,30 @@
       this.el.deckOverlay.classList.remove("hidden");
     }
 
+    // 消耗牌改造的分步演出（替代瞬间高亮）：
+    // 选中牌依次「抬起 → 迸发粒子 → 飘字显示改造结果 → 落定」，逐张推进更有节奏。
+    // 调用前 change 事件已渲染出最终手牌，故此处节点稳定，可安全逐张动画。
+    async playConsumableUse(cardIds, opts = {}) {
+      const ids = cardIds || [];
+      if (!ids.length) return;
+      const color = opts.color || "#b07fe0";
+      const note = opts.note || "";
+      for (let i = 0; i < ids.length; i++) {
+        const node = this.el.hand.querySelector(`[data-card-id="${ids[i]}"]`);
+        if (!node) continue;
+        node.classList.add("consumable-pop");
+        this.burst(node, color, 10);
+        await sleep(140);
+        node.classList.add("scoring-special");
+        this.burst(node, color, 18);
+        if (note) this._floaterAt(node, note, "mult", -16);
+        await sleep(300);
+        node.classList.remove("scoring-special");
+      }
+      await sleep(120);
+      this.el.hand.querySelectorAll(".consumable-pop").forEach((n) => n.classList.remove("consumable-pop"));
+    }
+
     // 高亮被塔罗牌改造的手牌
     highlightCards(cardIds) {
       this.renderHand(); // 先重渲染应用新外观
@@ -1042,6 +1082,7 @@
 
     // 在某节点中心迸发粒子
     burst(node, color = "#ffd54a", count = 12) {
+      if (!node) return; // 节点可能已被移除（异步动画 / 重渲），守卫防止崩溃
       const r = node.getBoundingClientRect();
       const cx = r.left + r.width / 2;
       const cy = r.top + r.height / 2;

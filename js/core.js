@@ -467,6 +467,23 @@
         if (c.seal === "gold") moneyEvents.push({ cardId: c.id, amount: 3, reason: "金封" });
       }
 
+      // 1.5) 留在手牌（未打出）的钢铁牌：每张 ×1.5 倍率（Balatro：steel 留手生效）
+      for (const c of s.hand) {
+        const heldEnh = ENHANCEMENTS[c.enhancement || "none"];
+        if (heldEnh && heldEnh.heldXmult) {
+          xmult *= heldEnh.heldXmult;
+          steps.push({
+            kind: "held",
+            cardId: c.id,
+            xmult: round2(xmult),
+            runChips: chips,
+            runMult: mult,
+            label: "×" + heldEnh.heldXmult,
+            tags: ["steel"],
+          });
+        }
+      }
+
       // 2) 小丑牌逐张结算
       const ctx = {
         chips, mult, xmult,
@@ -676,6 +693,19 @@
       if (jokerMoney) extra += ` + 小丑 $${jokerMoney}`;
       if (goldMoney) extra += ` + 黄金牌 $${goldMoney}`;
       this._log(`✅ 过关！奖励 $${reward} + 剩牌 $${handBonus} + 利息 $${interest}${extra} = +$${total}`, "good");
+
+      // 蓝封：回合结束时留在手牌的每张蓝封牌，各生成 1 张随机行星牌进消耗栏（需有空位）
+      let blueCreated = 0;
+      for (const c of s.hand) {
+        if (c.seal !== "blue") continue;
+        if (s.consumables.length >= CONFIG.MAX_CONSUMABLES) break;
+        if (!PLANET_POOL.length) break;
+        const sp = PLANET_POOL[Math.floor(Math.random() * PLANET_POOL.length)];
+        s.consumables.push(Object.assign({}, sp));
+        blueCreated++;
+      }
+      if (blueCreated) this._log(`🔵 蓝封生成 ${blueCreated} 张行星牌`, "good");
+
       this.emit("change");
       this.emit("roundWin", { reward, handBonus, interest, jokerMoney, goldMoney, total });
       this.openShop(true);
