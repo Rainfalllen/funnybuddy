@@ -71,7 +71,11 @@
       // ---------- 主菜单 / 封面（局外界面） ----------
       if (this.el.menuNewGame) this.el.menuNewGame.onclick = () => { if (window.SFX) window.SFX.click(); h.onMenuNewGame(); };
       if (this.el.menuContinue) this.el.menuContinue.onclick = () => { if (window.SFX) window.SFX.click(); h.onMenuContinue(); };
-      if (this.el.menuHelp) this.el.menuHelp.onclick = () => { if (window.SFX) window.SFX.click(); this.el.helpOverlay.classList.remove("hidden"); };
+      // 先弹出说明，再播音效：保证点击即时响应，且音效异常（AudioContext 未就绪等）绝不阻断弹窗
+      if (this.el.menuHelp) this.el.menuHelp.onclick = () => {
+        if (this.el.helpOverlay) this.el.helpOverlay.classList.remove("hidden");
+        try { if (window.SFX) window.SFX.click(); } catch (e) { /* 音效失败忽略，不影响弹窗 */ }
+      };
       if (this.el.helpClose) this.el.helpClose.onclick = () => this.el.helpOverlay.classList.add("hidden");
       if (this.el.menuBtn) this.el.menuBtn.onclick = () => h.onBackToMenu();
       // 音效开关（持久化到 localStorage）
