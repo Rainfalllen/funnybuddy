@@ -21,7 +21,81 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <!-- 背景漂浮骰点 -->
+  <!-- 地牢石墙场景（内联 SVG：砖墙 + 拱门纵深 + 墙上火把 + 暗角） -->
+  <div class="dungeon-bg" aria-hidden="true">
+    <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="dd-brick" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#33271a" />
+          <stop offset="1" stop-color="#191209" />
+        </linearGradient>
+        <radialGradient id="dd-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stop-color="#ffb04a" stop-opacity=".55" />
+          <stop offset="45%" stop-color="#ff7a2c" stop-opacity=".2" />
+          <stop offset="100%" stop-color="#ff7a2c" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="dd-vig" cx="50%" cy="40%" r="78%">
+          <stop offset="52%" stop-color="#000" stop-opacity="0" />
+          <stop offset="100%" stop-color="#000" stop-opacity=".85" />
+        </radialGradient>
+        <linearGradient id="dd-flame" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stop-color="#ff5a1e" />
+          <stop offset="55%" stop-color="#ffa83c" />
+          <stop offset="100%" stop-color="#ffe680" />
+        </linearGradient>
+        <pattern id="dd-bricks" width="128" height="96" patternUnits="userSpaceOnUse">
+          <rect width="128" height="96" fill="#0c0805" />
+          <g fill="url(#dd-brick)">
+            <rect x="2" y="2" width="60" height="42" rx="3" />
+            <rect x="66" y="2" width="60" height="42" rx="3" />
+            <rect x="-30" y="50" width="60" height="42" rx="3" />
+            <rect x="34" y="50" width="60" height="42" rx="3" />
+            <rect x="98" y="50" width="60" height="42" rx="3" />
+          </g>
+          <g fill="#46351f" opacity=".7">
+            <rect x="2" y="2" width="60" height="3" rx="1.5" />
+            <rect x="66" y="2" width="60" height="3" rx="1.5" />
+            <rect x="34" y="50" width="60" height="3" rx="1.5" />
+            <rect x="98" y="50" width="60" height="3" rx="1.5" />
+            <rect x="-30" y="50" width="60" height="3" rx="1.5" />
+          </g>
+        </pattern>
+      </defs>
+
+      <!-- 砖墙 -->
+      <rect width="1200" height="800" fill="url(#dd-bricks)" />
+      <!-- 中央拱门凹陷，制造纵深 -->
+      <path d="M450 800 V330 a150 150 0 0 1 300 0 V800 Z" fill="#000" opacity=".36" />
+      <!-- 地面阴影 -->
+      <rect x="0" y="694" width="1200" height="106" fill="#000" opacity=".42" />
+
+      <!-- 左火把 -->
+      <g class="dd-torch" transform="translate(150 300)">
+        <circle class="dd-torch-glow" r="185" fill="url(#dd-glow)" />
+        <rect x="-7" y="0" width="14" height="120" rx="5" fill="#241a12" />
+        <rect x="-23" y="-6" width="46" height="16" rx="6" fill="#3a2c1c" />
+        <g class="dd-flame">
+          <path d="M0 -4 C 26 -28 22 -78 0 -116 C -22 -78 -26 -28 0 -4 Z" fill="url(#dd-flame)" />
+          <path d="M0 -8 C 13 -28 11 -60 0 -86 C -11 -60 -13 -28 0 -8 Z" fill="#ffe680" />
+        </g>
+      </g>
+      <!-- 右火把 -->
+      <g class="dd-torch" transform="translate(1050 300)">
+        <circle class="dd-torch-glow" r="185" fill="url(#dd-glow)" />
+        <rect x="-7" y="0" width="14" height="120" rx="5" fill="#241a12" />
+        <rect x="-23" y="-6" width="46" height="16" rx="6" fill="#3a2c1c" />
+        <g class="dd-flame alt">
+          <path d="M0 -4 C 26 -28 22 -78 0 -116 C -22 -78 -26 -28 0 -4 Z" fill="url(#dd-flame)" />
+          <path d="M0 -8 C 13 -28 11 -60 0 -86 C -11 -60 -13 -28 0 -8 Z" fill="#ffe680" />
+        </g>
+      </g>
+
+      <!-- 暗角晕影 -->
+      <rect width="1200" height="800" fill="url(#dd-vig)" />
+    </svg>
+  </div>
+
+  <!-- 背景漂浮烬火 -->
   <div id="bgfx" aria-hidden="true"></div>
 
   <!-- 封面 / 主菜单 -->

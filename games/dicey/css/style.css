@@ -47,39 +47,38 @@ body {
   -webkit-font-smoothing: antialiased;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  /* 砖墙底：错缝砖块 + 砂浆缝 + 顶部火光 */
-  background-color: var(--stone-1);
-  background-image:
-    radial-gradient(circle at 50% -8%, #5a3a1e55, transparent 45%),
-    radial-gradient(circle at 0% 30%, #ff8a3c14, transparent 30%),
-    radial-gradient(circle at 100% 30%, #ff8a3c14, transparent 30%),
-    linear-gradient(180deg, #1c150e 0%, #120d09 60%, #0b0806 100%),
-    repeating-linear-gradient(0deg, var(--mortar) 0 2px, transparent 2px 64px),
-    repeating-linear-gradient(90deg, var(--mortar) 0 2px, transparent 2px 128px);
-  background-attachment: fixed;
+  background-color: var(--stone-0); /* 兜底底色；墙景由 .dungeon-bg 的内联 SVG 承载 */
 }
-/* 砖块明暗颗粒叠加，增加石材质感 */
-body::after {
-  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image:
-    repeating-linear-gradient(90deg, #ffffff05 0 1px, transparent 1px 128px),
-    radial-gradient(circle at 30% 40%, #00000040, transparent 60%);
-  mix-blend-mode: overlay; opacity: .5;
-}
-/* 暗角晕影 + 两侧火把暖光（带轻微闪烁） */
+/* 全局火光呼吸：让整个场景随火把一起轻微明暗起伏 */
 body::before {
   content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(120% 80% at 8% 18%, #ff8a2c22, transparent 26%),
-    radial-gradient(120% 80% at 92% 18%, #ff8a2c22, transparent 26%),
-    radial-gradient(140% 120% at 50% 50%, transparent 55%, #000000aa 100%);
+  background: radial-gradient(150% 120% at 50% 36%, transparent 60%, #00000066 100%);
   animation: torchFlicker 3.6s ease-in-out infinite;
 }
 @keyframes torchFlicker {
   0%, 100% { opacity: 1; }
-  25% { opacity: .86; }
-  50% { opacity: .96; }
-  72% { opacity: .8; }
+  28% { opacity: .82; }
+  52% { opacity: .95; }
+  74% { opacity: .78; }
+}
+
+/* ---------------- 地牢石墙场景层 ---------------- */
+.dungeon-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.dungeon-bg svg { width: 100%; height: 100%; display: block; }
+/* 墙上火把暖光：缓慢明暗呼吸 */
+.dd-torch-glow { animation: glowPulse 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.dd-torch:nth-of-type(2) .dd-torch-glow { animation-delay: -1.4s; }
+@keyframes glowPulse { 0%,100% { opacity: .72; transform: scale(1);} 50% { opacity: 1; transform: scale(1.06);} }
+/* 火焰跳动：以底部为支点的拉伸 + 轻微摆动 */
+.dd-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flameDance 0.5s ease-in-out infinite alternate; filter: drop-shadow(0 0 10px #ff8a3caa); }
+.dd-flame.alt { animation-duration: 0.62s; animation-delay: -0.3s; }
+@keyframes flameDance {
+  0%   { transform: scaleY(.92) scaleX(1.04) skewX(3deg); }
+  50%  { transform: scaleY(1.06) scaleX(.97) skewX(-2deg); }
+  100% { transform: scaleY(1.14) scaleX(.95) skewX(2deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dd-flame, .dd-torch-glow, body::before { animation: none; }
 }
 
 /* 漂浮的烬火（bgfx 的 .spark 复用为火星） */
@@ -268,8 +267,8 @@ body::before {
 }
 .overlay.hidden, .hidden { display: none !important; }
 
-/* 主菜单（地牢入口） */
-.menu-overlay { flex-direction: column; background: radial-gradient(circle at 50% 25%, #3a2412, #0a0705 70%); }
+/* 主菜单（地牢入口）：半透明压暗，透出身后的墙景与火把 */
+.menu-overlay { flex-direction: column; background: radial-gradient(circle at 50% 32%, #160d07b3, #05030299 70%, #050302d9); backdrop-filter: blur(2px); }
 .menu-dice { font-size: 84px; animation: spinDie 6s ease-in-out infinite; filter: drop-shadow(0 8px 18px #000) drop-shadow(0 0 22px #ff8a3c66); }
 @keyframes spinDie { 0%,100% { transform: rotate(-8deg);} 50% { transform: rotate(8deg) scale(1.08);} }
 .menu-content { text-align: center; margin-top: 6px; }

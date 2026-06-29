@@ -3,7 +3,7 @@
  * 策略：同源静态资源 cache-first，后台更新；升级 CACHE_VERSION 即可强制刷新。
  * 使用独立缓存名前缀「dicey-」，仅清理自身旧缓存，避免影响大厅或其它游戏。
  * ============================================================ */
-const CACHE_VERSION = "dicey-v2";
+const CACHE_VERSION = "dicey-v3";
 const PRECACHE_URLS = [
   "./",
   "./index.html",

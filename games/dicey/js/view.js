@@ -510,19 +510,25 @@
       tip.style.top = top + "px";
     }
 
-    // ---------- 背景漂浮骰点 ----------
+    // ---------- 背景漂浮烬火 ----------
+    // 多数烬火从两侧火把（约 12% / 88% 处）升起，少量散布全场，呼应墙上的火把。
     _initBg() {
       const host = this.el.bgfx;
       if (!host) return;
-      const N = 14;
+      const N = 22;
       for (let i = 0; i < N; i++) {
         const s = document.createElement("div");
         s.className = "spark";
-        s.style.left = Math.random() * 100 + "%";
+        const r = Math.random();
+        let leftPct;
+        if (r < 0.4) leftPct = 12 + (Math.random() * 8 - 4);        // 左火把附近
+        else if (r < 0.8) leftPct = 88 + (Math.random() * 8 - 4);   // 右火把附近
+        else leftPct = Math.random() * 100;                          // 零星散布
+        s.style.left = leftPct + "%";
         s.style.animationDelay = (Math.random() * 12) + "s";
-        s.style.animationDuration = (10 + Math.random() * 12) + "s";
-        s.style.opacity = 0.1 + Math.random() * 0.25;
-        const sz = 4 + Math.random() * 8;
+        s.style.animationDuration = (9 + Math.random() * 11) + "s";
+        s.style.opacity = 0.25 + Math.random() * 0.4;
+        const sz = 3 + Math.random() * 6;
         s.style.width = s.style.height = sz + "px";
         host.appendChild(s);
       }
