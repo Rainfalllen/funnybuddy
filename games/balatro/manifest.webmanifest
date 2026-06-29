@@ -1,7 +1,7 @@
 {
-  "name": "FunnyBuddy · 小游戏合集",
-  "short_name": "FunnyBuddy",
-  "description": "纯前端、可离线的小游戏合集。",
+  "name": "小丑牌 · Balatro JS",
+  "short_name": "小丑牌",
+  "description": "一个仿 Balatro 的扑克 Roguelike 网页游戏。",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

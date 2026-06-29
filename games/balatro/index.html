@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>小丑牌 · Balatro JS</title>
+
+  <!-- PWA 应用清单 -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#16291f" />
+  <meta name="color-scheme" content="dark" />
+
+  <!-- iOS 添加到主屏 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="小丑牌" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- 背景漂浮光点特效 -->
+  <div id="bgfx"></div>
+
+  <!-- 封面 / 主菜单（局外界面） -->
+  <div id="menuOverlay" class="overlay menu-overlay">
+    <div class="menu-aura" aria-hidden="true"></div>
+
+    <!-- 装饰：扇形扑克牌阵 -->
+    <div class="menu-fan" aria-hidden="true">
+      <div class="fan-card c-red"><span class="rank">A</span><span class="suit">♥</span></div>
+      <div class="fan-card c-black"><span class="rank">K</span><span class="suit">♠</span></div>
+      <div class="fan-card fan-joker"><span class="jk">🤡</span></div>
+      <div class="fan-card c-red"><span class="rank">Q</span><span class="suit">♦</span></div>
+      <div class="fan-card c-black"><span class="rank">J</span><span class="suit">♣</span></div>
+    </div>
+
+    <div class="menu-content">
+      <div class="menu-logo">
+        <h1 class="menu-title" data-text="小丑牌">小丑牌</h1>
+        <div class="menu-sub">FUNNY&nbsp;BUDDY · 一个 Balatro 风格的卡牌肉鸽</div>
+      </div>
+
+      <div class="menu-buttons">
+        <button id="menuContinue" class="btn btn-menu btn-menu-continue">▶ 继续游戏</button>
+        <button id="menuNewGame" class="btn btn-menu btn-menu-new">＋ 开始新游戏</button>
+        <button id="menuHelp" class="btn btn-menu">？ 玩法说明</button>
+        <button id="menuSound" class="btn btn-menu">🔊 音效：开</button>
+      </div>
+
+      <div class="menu-footer">用 ♥ 打造 · 出牌、凑牌型、组小丑、滚雪球</div>
+    </div>
+  </div>
+
+  <!-- 玩法说明弹层 -->
+  <div id="helpOverlay" class="overlay hidden">
+    <div class="help-box">
+      <h2>🎴 玩法说明</h2>
+      <div class="help-content">
+        <p><b>目标</b>：每个盲注都有一条目标分数线，用有限的「出牌」次数把<b>本轮得分</b>打过线即可过关；连续击败小盲、大盲、Boss 盲注推进底注，通关全部底注即获胜。</p>
+        <p><b>计分</b>：得分 = <span class="chip">筹码</span> × <span class="mult">倍率</span>。打出的牌型（对子、顺子、同花……）提供基础筹码与倍率，用<b>行星牌</b>可永久升级牌型等级。</p>
+        <p><b>小丑牌</b>：核心 build。放在最上方一排，计分时<b>从左到右依次触发</b>，提供加筹码 / 加倍率 / ×倍率等强力效果，顺序会影响结算结果。</p>
+        <p><b>消耗牌</b>：🪐行星牌升级牌型；🔮塔罗牌改造手牌；👻幻灵牌效果激进。点击使用，× 卖出。</p>
+        <p><b>商店</b>：每轮结束用资金购买小丑牌与消耗牌，刷新可换新货。攒钱也会产生利息，权衡消费与滚雪球。</p>
+      </div>
+      <button id="helpClose" class="btn btn-sort">关闭</button>
+    </div>
+  </div>
+
+  <div id="game">
+    <!-- 顶部：盲注信息与计分 -->
+    <header id="topbar">
+      <div class="panel blind-panel">
+        <div class="blind-name" id="blindName">小盲注</div>
+        <div class="blind-target">目标 <span id="targetScore">300</span></div>
+        <div class="blind-reward" id="blindReward">奖励 $3</div>
+      </div>
+
+      <div class="panel score-panel">
+        <div class="round-score-label">本轮得分</div>
+        <div class="round-score" id="roundScore">0</div>
+        <div class="score-formula">
+          <span class="chips" id="chipsView">0</span>
+          <span class="times">×</span>
+          <span class="mult" id="multView">0</span>
+        </div>
+      </div>
+
+      <div class="panel stats-panel">
+        <div class="stat money"><span class="stat-label">资金</span><span id="moneyView">$4</span></div>
+        <div class="stat"><span class="stat-label">出牌</span><span id="handsView">4</span></div>
+        <div class="stat"><span class="stat-label">弃牌</span><span id="discardsView">3</span></div>
+        <div class="stat"><span class="stat-label">底注</span><span id="anteView">1/8</span></div>
+        <div class="stat"><span class="stat-label">回合</span><span id="roundView">1</span></div>
+      </div>
+    </header>
+
+    <!-- 小丑牌区 + 消耗牌区 -->
+    <section class="row jokers-row">
+      <div class="jokers-consumables">
+        <div class="jokers-col">
+          <div class="row-label">小丑牌 <span id="jokerCount">0/5</span></div>
+          <div id="jokers" class="card-strip jokers"></div>
+        </div>
+        <div class="consumables-col">
+          <div class="row-label">消耗牌 <span id="consumableCount">0/2</span></div>
+          <div id="consumables" class="card-strip consumables"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 当前出牌型展示 -->
+    <div id="handTypeBanner" class="hand-type-banner hidden">
+      <span id="handTypeName"></span>
+      <span id="handTypeLevel"></span>
+    </div>
+
+    <!-- 主牌桌 -->
+    <section class="table-area">
+      <div id="playArea" class="play-area"></div>
+    </section>
+
+    <!-- 手牌 -->
+    <section class="row hand-row">
+      <div class="row-label">
+        手牌 · 牌库剩余 <span id="deckCount">52</span>
+        <button id="deckViewBtn" class="mini-btn">📚 查看牌库</button>
+      </div>
+      <div id="hand" class="card-strip hand"></div>
+    </section>
+
+    <!-- 操作按钮 -->
+    <footer id="actions">
+      <button id="playBtn" class="btn btn-play" disabled>出牌</button>
+      <button id="sortRankBtn" class="btn btn-sort">按点数排序</button>
+      <button id="sortSuitBtn" class="btn btn-sort">按花色排序</button>
+      <button id="discardBtn" class="btn btn-discard" disabled>弃牌</button>
+    </footer>
+  </div>
+
+  <!-- 商店弹层 -->
+  <div id="shopOverlay" class="overlay hidden">
+    <div class="shop">
+      <div class="shop-header">
+        <h2>🛒 商店</h2>
+        <div class="shop-money">资金 <span id="shopMoney">$0</span></div>
+      </div>
+
+      <div class="shop-section">
+        <div class="shop-section-title">
+          🎴 待售小丑牌
+          <span class="hint">点击购买</span>
+        </div>
+        <div id="shopJokers" class="shop-items"></div>
+      </div>
+
+      <div class="shop-section">
+        <div class="shop-section-title">
+          🪐 行星牌 <span class="hint">升级牌型 · 买入后在「消耗牌」区点击使用</span>
+        </div>
+        <div id="shopPlanets" class="shop-items"></div>
+      </div>
+
+      <div class="shop-section">
+        <div class="shop-section-title">
+          🔮 塔罗牌 <span class="hint">改造扑克牌 · 买入后回牌桌使用</span>
+        </div>
+        <div id="shopTarots" class="shop-items"></div>
+      </div>
+
+      <div class="shop-section" id="shopSpectralSection">
+        <div class="shop-section-title">
+          👻 幻灵牌 <span class="hint">稀有 · 效果激进</span>
+        </div>
+        <div id="shopSpectrals" class="shop-items"></div>
+      </div>
+
+      <div class="shop-section">
+        <div class="shop-section-title">
+          🤡 我的小丑牌 <span id="shopOwnedCount" class="hint">0/5</span>
+          <span class="hint">点击卖出 · 拖拽调整顺序（影响触发顺序）</span>
+        </div>
+        <div id="shopOwnedJokers" class="shop-items owned"></div>
+      </div>
+
+      <div class="shop-footer">
+        <button id="rerollBtn" class="btn btn-reroll">刷新 ($5)</button>
+        <button id="nextRoundBtn" class="btn btn-next">下一回合 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 盲注选择弹层 -->
+  <div id="blindOverlay" class="overlay hidden">
+    <div class="blind-select">
+      <h2 id="blindSelectTitle">选择盲注</h2>
+      <div id="blindCards" class="blind-cards"></div>
+      <div class="blind-footer">
+        <button id="openShopBtn" class="btn btn-reroll">🛒 进入商店</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 牌库查看弹层 -->
+  <div id="deckOverlay" class="overlay hidden">
+    <div class="deck-viewer">
+      <div class="deck-viewer-header">
+        <h2>📚 我的牌库</h2>
+        <div class="deck-stats" id="deckStats"></div>
+        <button id="deckCloseBtn" class="btn btn-sort">关闭</button>
+      </div>
+      <div id="deckGrid" class="deck-grid"></div>
+    </div>
+  </div>
+
+  <!-- 结束/胜利弹层 -->
+  <div id="endOverlay" class="overlay hidden">
+    <div class="end-box">
+      <h2 id="endTitle">游戏结束</h2>
+      <p id="endMsg"></p>
+      <div class="end-actions">
+        <button id="restartBtn" class="btn btn-play">重新开始</button>
+        <button id="menuBtn" class="btn btn-sort">返回主菜单</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 操作日志面板 -->
+  <aside id="logPanel">
+    <div class="log-header">
+      <span class="log-title">📜 操作日志</span>
+      <button id="logClear" class="log-clear" title="清空日志">清空</button>
+    </div>
+    <div id="logList" class="log-list"></div>
+  </aside>
+  <button id="logToggle" title="显示/隐藏日志">📜</button>
+
+  <!-- 飘字层 -->
+  <div id="floaters"></div>
+
+  <!-- 粒子/爆发特效层 -->
+  <div id="fxLayer"></div>
+
+  <!-- 全屏闪光层 -->
+  <div id="flash"></div>
+
+  <!-- 数据/工具层 -->
+  <script src="js/sfx.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/jokers.js"></script>
+  <script src="js/planets.js"></script>
+  <script src="js/tarots.js"></script>
+  <script src="js/spectrals.js"></script>
+  <!-- 逻辑层（不依赖 DOM） -->
+  <script src="js/core.js"></script>
+  <!-- 表现层（只负责渲染/动画） -->
+  <script src="js/view.js"></script>
+  <!-- 控制层（连接逻辑与表现） -->
+  <script src="js/app.js"></script>
+
+  <!-- PWA Service Worker 注册 -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch((e) => {
+          console.warn("[PWA] service worker 注册失败：", e);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
