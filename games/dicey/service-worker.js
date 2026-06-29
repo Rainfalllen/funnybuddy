@@ -1,17 +1,19 @@
 /* ============================================================
- * service-worker.js —— 合集大厅 PWA 离线缓存
- * 注意：仅缓存大厅自身资源；各游戏（games/<id>/）拥有各自的
- * service-worker，作用域互不干扰。
- * 策略：静态资源 cache-first，其它 network-first 回退缓存。
- * 升级 CACHE_VERSION 即可强制刷新。
+ * service-worker.js —— 骰子地下城·PWA 离线缓存
+ * 策略：同源静态资源 cache-first，后台更新；升级 CACHE_VERSION 即可强制刷新。
+ * 使用独立缓存名前缀「dicey-」，仅清理自身旧缓存，避免影响大厅或其它游戏。
  * ============================================================ */
-const CACHE_VERSION = "funnybuddy-hub-v3";
+const CACHE_VERSION = "dicey-v2";
 const PRECACHE_URLS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./css/hub.css",
-  "./js/hub.js",
+  "./css/style.css",
+  "./js/sfx.js",
+  "./js/data.js",
+  "./js/core.js",
+  "./js/view.js",
+  "./js/app.js",
   "./icons/icon.svg",
 ];
 
@@ -24,9 +26,8 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      // 仅清理大厅自身的旧缓存，避免误删各游戏的缓存
       Promise.all(
-        keys.filter((k) => k.startsWith("funnybuddy-hub-") && k !== CACHE_VERSION).map((k) => caches.delete(k))
+        keys.filter((k) => k.startsWith("dicey-") && k !== CACHE_VERSION).map((k) => caches.delete(k))
       )
     ).then(() => self.clients.claim())
   );

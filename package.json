@@ -6,7 +6,12 @@
   "scripts": {
     "start": "node server.js",
     "balatro:cli": "node games/balatro/cli.js",
-    "balatro:cli:quiet": "node games/balatro/cli.js --quiet"
+    "balatro:cli:quiet": "node games/balatro/cli.js --quiet",
+    "dicey:cli": "node games/dicey/cli.js",
+    "dicey:cli:quiet": "node games/dicey/cli.js --quiet",
+    "dicey:sim": "node games/dicey/cli.js --runs=300 --quiet",
+    "2048:cli": "node games/2048/cli.js",
+    "2048:cli:quiet": "node games/2048/cli.js --quiet"
   },
   "license": "MIT"
 }

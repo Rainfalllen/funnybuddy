@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1f4332"/>
+      <stop offset="1" stop-color="#0e1f17"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0cf57"/>
+      <stop offset="1" stop-color="#e7b94e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="translate(96 96)">
+    <rect x="0"   y="0"   width="150" height="150" rx="22" fill="#ffffff" opacity="0.10"/>
+    <rect x="170" y="0"   width="150" height="150" rx="22" fill="#f2b179"/>
+    <rect x="0"   y="170" width="150" height="150" rx="22" fill="#f65e3b"/>
+    <rect x="170" y="170" width="150" height="150" rx="22" fill="url(#tile)"/>
+  </g>
+  <text x="256" y="296" text-anchor="middle" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="150" font-weight="800" fill="#16291f" letter-spacing="-6">2048</text>
+</svg>

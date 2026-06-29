@@ -1,0 +1,21 @@
+{
+  "name": "骰子地下城 · Dicey Dungeon JS",
+  "short_name": "骰子地下城",
+  "description": "掷骰子、把骰子分配到装备、击败地牢怪物的骰子构筑 Roguelike。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#16110c",
+  "theme_color": "#16110c",
+  "lang": "zh-CN",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

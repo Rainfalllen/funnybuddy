@@ -16,6 +16,7 @@
 | --- | --- | --- |
 | 🤡 小丑牌（Balatro JS） | `games/balatro/` | 出牌、凑牌型、组小丑、滚雪球的卡牌肉鸽 |
 | 🔢 2048 | `games/2048/` | 滑动合并相同数字，挑战凑出 2048（支持键盘 / 触摸） |
+| 🎲 骰子地下城（Dicey Dungeon JS） | `games/dicey/` | 掷骰子、把骰子分配到装备、闯地牢的骰子构筑肉鸽 |
 
 > 更多游戏陆续添加中……
 
@@ -62,6 +63,16 @@ node games/balatro/cli.js
 ```
 
 该运行器复用与浏览器**完全相同**的逻辑层（`core/cards/jokers/planets/tarots/spectrals`），仅把「表现层」换成终端文字输出 + 一个简单自动决策器，全程不加载 `view.js` / `sfx.js`，不触碰任何 DOM。
+
+骰子地下城同样提供命令行验证，并支持批量模拟以观察平衡（通关率）：
+
+```bash
+npm run dicey:cli            # 自动打一局并打印过程（地图、战斗、掷骰、状态、商店…）
+npm run dicey:cli:quiet      # 只打印关键节点与最终结果
+npm run dicey:sim            # 连续模拟 300 局，统计通关率
+# 或直接（--seed 固定随机种子复现）：
+node games/dicey/cli.js --runs=200 --seed=1
+```
 
 ### 跨环境模块写法
 

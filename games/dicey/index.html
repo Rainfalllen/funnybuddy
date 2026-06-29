@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>骰子地下城 · Dicey Dungeon JS</title>
+
+  <!-- PWA 应用清单 -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#16110c" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="掷骰子、分配骰子到装备、击败地牢中的怪物。纯前端、可离线的骰子构筑 Roguelike。" />
+
+  <!-- iOS 添加到主屏 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="骰子地下城" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- 背景漂浮骰点 -->
+  <div id="bgfx" aria-hidden="true"></div>
+
+  <!-- 封面 / 主菜单 -->
+  <div id="menuOverlay" class="overlay menu-overlay">
+    <div class="menu-dice" aria-hidden="true">🎲</div>
+    <div class="menu-content">
+      <h1 class="menu-title" data-text="骰子地下城">骰子地下城</h1>
+      <div class="menu-sub">FUNNY&nbsp;BUDDY · 掷骰子、配装备、闯地牢的构筑肉鸽</div>
+      <div class="menu-buttons">
+        <button id="menuContinue" class="btn btn-menu btn-menu-continue">▶ 继续游戏</button>
+        <button id="menuNewGame" class="btn btn-menu btn-menu-new">＋ 开始新游戏</button>
+        <button id="menuHelp" class="btn btn-menu">？ 玩法说明</button>
+        <button id="menuSound" class="btn btn-menu">🔊 音效：开</button>
+      </div>
+      <div class="menu-footer"><a href="../../index.html">‹ 返回大厅</a> · 用 ♥ 打造</div>
+    </div>
+  </div>
+
+  <!-- 玩法说明 -->
+  <div id="helpOverlay" class="overlay hidden">
+    <div class="help-box">
+      <h2>🎲 玩法说明</h2>
+      <div class="help-content">
+        <p><b>核心</b>：每回合投出若干骰子，把<b>骰子拖/点进装备</b>触发效果——攻击、防御、治疗或施加状态，击败敌人并深入地牢。</p>
+        <p><b>装备条件</b>：每件装备只接受满足条件的骰子（任意 / 偶数 / 奇数 / ≤N / ≥N / =N）。先点选一个骰子，再点击高亮的装备即可使用。</p>
+        <p><b>状态</b>：☠中毒、🔥燃烧每回合造成持续伤害；❄冰冻把对方最高骰子冻成 1；💧虚弱降低伤害；🛡护盾抵消伤害（自己回合开始清空）。</p>
+        <p><b>大招</b>：受到伤害积累能量，充满后可重掷所有骰子，扭转坏运气。</p>
+        <p><b>地牢</b>：每层在战斗 / 精英 / 宝箱 / 商店 / 营火中择一前进。战斗后三选一装备、升级与成长，最终挑战 Boss 地牢领主。</p>
+      </div>
+      <button id="helpClose" class="btn btn-sub">关闭</button>
+    </div>
+  </div>
+
+  <div id="game">
+    <!-- 顶部：玩家状态条（地图 / 战斗共用） -->
+    <header id="playerBar" class="player-bar">
+      <div class="pb-main">
+        <div class="pb-name" id="pName">🛡️ 战士</div>
+        <div class="bar hp-bar"><div class="bar-fill hp" id="pHpFill"></div><span class="bar-text" id="pHpText">26/26</span></div>
+      </div>
+      <div class="pb-status">
+        <span class="block-chip hidden" id="pBlock">🛡 0</span>
+        <span class="status-row" id="pStatus"></span>
+      </div>
+      <div class="pb-limit">
+        <span class="limit-label">大招</span>
+        <div class="bar limit-bar"><div class="bar-fill limit" id="pLimitFill"></div><span class="bar-text" id="pLimitText">0/8</span></div>
+      </div>
+      <div class="pb-stats">
+        <span class="pstat gold" id="pGold">$8</span>
+        <span class="pstat" id="pLevel">Lv.1</span>
+        <span class="pstat xp" id="pXp">0/3 XP</span>
+      </div>
+    </header>
+
+    <!-- 地图界面 -->
+    <section id="screenMap" class="screen hidden">
+      <div class="map-head">🗺️ <span id="mapRowInfo">第 1 / 6 层</span> · 选择前进路线</div>
+      <div id="mapTrack" class="map-track"></div>
+    </section>
+
+    <!-- 战斗界面 -->
+    <section id="screenBattle" class="screen hidden">
+      <!-- 敌人 -->
+      <div class="enemy-panel">
+        <div class="enemy-head">
+          <div class="enemy-portrait" id="eIcon">🟢</div>
+          <div class="enemy-info">
+            <div class="enemy-name" id="eName">史莱姆</div>
+            <div class="bar hp-bar enemy-hp"><div class="bar-fill hp" id="eHpFill"></div><span class="bar-text" id="eHpText">12/12</span></div>
+            <div class="enemy-meta">
+              <span class="block-chip hidden" id="eBlock">🛡 0</span>
+              <span class="status-row" id="eStatus"></span>
+            </div>
+          </div>
+        </div>
+        <div class="row-label">敌人装备</div>
+        <div id="eEquip" class="equip-strip"></div>
+        <div class="row-label">敌人骰子</div>
+        <div id="eDice" class="dice-strip"></div>
+      </div>
+
+      <div class="turn-bar">
+        <span id="turnInfo" class="turn-info">你的回合</span>
+        <div class="turn-actions">
+          <button id="limitBtn" class="btn btn-limit" disabled>💥 大招</button>
+          <button id="endTurnBtn" class="btn btn-end">结束回合 →</button>
+        </div>
+      </div>
+
+      <!-- 玩家 -->
+      <div class="player-combat">
+        <div class="row-label">你的骰子 <span class="hint">点选骰子 → 点击高亮装备使用</span></div>
+        <div id="pDice" class="dice-strip dice-mine"></div>
+        <div class="row-label">你的装备</div>
+        <div id="pEquip" class="equip-strip equip-mine"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 奖励弹层 -->
+  <div id="rewardOverlay" class="overlay hidden">
+    <div class="reward-box">
+      <h2 id="rewardTitle">✨ 战利品 · 三选一</h2>
+      <div id="rewardHint" class="reward-hint"></div>
+      <div id="rewardOptions" class="reward-options"></div>
+      <button id="rewardSkip" class="btn btn-sub">跳过</button>
+    </div>
+  </div>
+
+  <!-- 商店弹层 -->
+  <div id="shopOverlay" class="overlay hidden">
+    <div class="shop-box">
+      <div class="shop-header">
+        <h2>🛒 商店</h2>
+        <div class="shop-money">金币 <span id="shopGold">$0</span></div>
+      </div>
+      <div class="shop-section-title">🎴 待售装备</div>
+      <div id="shopItems" class="shop-grid"></div>
+      <div class="shop-section-title">🎒 我的装备 <span class="hint">可升级 / 卖出</span></div>
+      <div id="shopOwned" class="owned-grid"></div>
+      <div class="shop-footer">
+        <button id="shopHealBtn" class="btn btn-heal">💚 治疗</button>
+        <button id="shopRerollBtn" class="btn btn-sub">🔄 刷新</button>
+        <button id="shopLeaveBtn" class="btn btn-end">离开商店 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 结束弹层 -->
+  <div id="endOverlay" class="overlay hidden">
+    <div class="end-box">
+      <h2 id="endTitle">游戏结束</h2>
+      <p id="endMsg"></p>
+      <div class="end-actions">
+        <button id="endRestart" class="btn btn-menu-new">重新开始</button>
+        <button id="endMenu" class="btn btn-sub">返回主菜单</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 操作日志 -->
+  <aside id="logPanel">
+    <div class="log-header"><span class="log-title">📜 战斗日志</span><button id="logClear" class="log-clear">清空</button></div>
+    <div id="logList" class="log-list"></div>
+  </aside>
+  <button id="logToggle" title="显示/隐藏日志">📜</button>
+
+  <!-- 浮层组件 -->
+  <div id="tooltip" class="tooltip hidden"></div>
+  <div id="toast" class="toast"></div>
+  <div id="floaters"></div>
+  <div id="flash"></div>
+
+  <!-- 数据 / 工具层 -->
+  <script src="js/sfx.js"></script>
+  <script src="js/data.js"></script>
+  <!-- 逻辑层（不依赖 DOM） -->
+  <script src="js/core.js"></script>
+  <!-- 表现层（只负责渲染/动画） -->
+  <script src="js/view.js"></script>
+  <!-- 控制层（连接逻辑与表现） -->
+  <script src="js/app.js"></script>
+
+  <!-- PWA Service Worker 注册 -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch((e) => {
+          console.warn("[PWA] service worker 注册失败：", e);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

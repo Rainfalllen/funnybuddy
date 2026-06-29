@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>2048 · FunnyBuddy</title>
+
+  <!-- PWA 应用清单 -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#16291f" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="经典 2048：滑动合并相同数字，挑战凑出 2048。纯前端、可离线。" />
+
+  <!-- iOS 添加到主屏 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="2048" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="bgfx" aria-hidden="true"></div>
+
+  <main class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <a class="back" href="../../index.html" aria-label="返回大厅">‹</a>
+        <h1 class="logo">2048</h1>
+      </div>
+      <div class="scores">
+        <div class="score-box">
+          <div class="score-label">得分</div>
+          <div class="score-val" id="score">0</div>
+        </div>
+        <div class="score-box">
+          <div class="score-label">最佳</div>
+          <div class="score-val" id="best">0</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="subbar">
+      <p class="tip">合并相同数字，凑出 <b>2048</b>！<span class="kbd-hint">方向键 / WASD / 滑动</span></p>
+      <button id="newGameBtn" class="btn">新游戏</button>
+    </div>
+
+    <section id="board" class="board" aria-label="2048 棋盘">
+      <div id="gridBg" class="grid-bg" aria-hidden="true"></div>
+      <div id="tileContainer" class="tile-container"></div>
+
+      <!-- 胜负提示层 -->
+      <div id="gameMessage" class="game-message">
+        <p class="msg-text">游戏结束</p>
+        <div class="msg-actions">
+          <button id="keepPlayingBtn" class="btn btn-keep">继续挑战</button>
+          <button id="retryBtn" class="btn btn-retry">再来一局</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">用 ♥ 打造 · 逻辑可在命令行独立运行（<code>node games/2048/cli.js</code>）</footer>
+  </main>
+
+  <!-- 逻辑层（不依赖 DOM） -->
+  <script src="js/core.js"></script>
+  <!-- 表现层（只负责渲染/动画） -->
+  <script src="js/view.js"></script>
+  <!-- 控制层（连接逻辑与表现） -->
+  <script src="js/app.js"></script>
+
+  <!-- PWA Service Worker 注册 -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch((e) => {
+          console.warn("[PWA] service worker 注册失败：", e);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

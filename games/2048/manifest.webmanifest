@@ -1,0 +1,21 @@
+{
+  "name": "2048 · FunnyBuddy",
+  "short_name": "2048",
+  "description": "经典 2048：滑动合并相同数字，挑战凑出 2048。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#16291f",
+  "theme_color": "#16291f",
+  "lang": "zh-CN",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="32%" r="80%">
+      <stop offset="0" stop-color="#3a2412"/>
+      <stop offset="1" stop-color="#0b0806"/>
+    </radialGradient>
+    <linearGradient id="die" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbf7ea"/>
+      <stop offset="1" stop-color="#ddd2b4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ff9d3c" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#ff6b2c" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="192" height="192" rx="40" fill="url(#bg)"/>
+  <!-- 砖缝 -->
+  <g stroke="#00000055" stroke-width="2">
+    <line x1="0" y1="56" x2="192" y2="56"/>
+    <line x1="0" y1="112" x2="192" y2="112"/>
+    <line x1="64" y1="0" x2="64" y2="56"/>
+    <line x1="128" y1="56" x2="128" y2="112"/>
+    <line x1="96" y1="112" x2="96" y2="192"/>
+  </g>
+  <!-- 火把暖光 -->
+  <circle cx="96" cy="100" r="78" fill="url(#glow)"/>
+  <!-- 骰子 -->
+  <g transform="rotate(-12 96 96)">
+    <rect x="48" y="48" width="96" height="96" rx="20" fill="url(#die)" stroke="#9c8a64" stroke-width="3"/>
+    <g fill="#241a10">
+      <circle cx="74" cy="74" r="9"/>
+      <circle cx="118" cy="74" r="9"/>
+      <circle cx="96" cy="96" r="9"/>
+      <circle cx="74" cy="118" r="9"/>
+      <circle cx="118" cy="118" r="9"/>
+    </g>
+  </g>
+</svg>
