@@ -165,11 +165,31 @@ body::before {
 /* ---------------- 地图（地牢回廊） ---------------- */
 .screen { animation: fadeIn .3s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: none; } }
-.map-head { text-align: center; font-weight: 800; font-size: 18px; margin: 18px 0 22px; color: var(--torch); text-shadow: 0 0 14px #ff8a3c55, 0 2px 2px #000; letter-spacing: 1px; }
-.map-track { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; max-width: 760px; margin: 0 auto; }
+.map-head { text-align: center; font-weight: 800; font-size: 18px; margin: 18px 0 18px; color: var(--torch); text-shadow: 0 0 14px #ff8a3c55, 0 2px 2px #000; letter-spacing: 1px; }
+
+/* 整张路线图：自上而下逐层展开 */
+.map-track { display: flex; flex-direction: column; align-items: stretch; max-width: 620px; margin: 0 auto; padding-bottom: 28px; }
+
+/* 层间连接线：竖向虚线，已走过的路段点亮 */
+.map-conn { display: flex; justify-content: center; height: 26px; margin-left: 58px; }
+.map-conn .conn-line {
+  width: 3px; height: 100%; border-radius: 2px;
+  background: repeating-linear-gradient(180deg, var(--line) 0 6px, transparent 6px 12px);
+}
+.map-conn.conn-done .conn-line {
+  background: linear-gradient(180deg, var(--torch), #ff8a3c);
+  box-shadow: 0 0 10px #ff8a3c88;
+}
+
+/* 每一层：左侧楼层标签 + 右侧节点 */
+.map-row { display: flex; align-items: center; gap: 12px; width: 100%; }
+.map-floor { flex: 0 0 46px; text-align: center; font-weight: 800; font-size: 13px; color: var(--muted); letter-spacing: 1px; }
+.row-current .map-floor { color: var(--torch); text-shadow: 0 0 10px #ff8a3c66; }
+.map-nodes { display: flex; gap: 14px; flex-wrap: wrap; flex: 1; justify-content: center; }
+
 .map-node {
   position: relative; border-radius: var(--radius); cursor: pointer; padding: 22px 14px 18px; text-align: center;
-  color: var(--text);
+  color: var(--text); min-width: 120px;
   background:
     linear-gradient(180deg, #2c2117, #1a130d),
     repeating-linear-gradient(0deg, #00000026 0 1px, transparent 1px 10px);
@@ -182,7 +202,6 @@ body::before {
   content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
   width: 26px; height: 5px; border-radius: 3px; background: #00000066; box-shadow: inset 0 1px 0 #ffffff10;
 }
-.map-node:hover { transform: translateY(-4px); border-color: var(--torch); box-shadow: 0 0 22px #ff8a3c55, var(--shadow-lg); }
 .node-icon { font-size: 42px; line-height: 1; margin-bottom: 8px; filter: drop-shadow(0 3px 5px #000a); }
 .node-label { font-weight: 800; font-size: 16px; }
 .node-enemy { margin-top: 8px; font-size: 13px; color: var(--muted); }
@@ -192,6 +211,26 @@ body::before {
 .node-shop { border-color: #f0c46a66; }
 .node-heal { border-color: #88b06166; }
 .node-treasure { border-color: #f0c46a77; }
+
+/* 当前层：可点击、悬停抬升 */
+.node-current:hover { transform: translateY(-4px); border-color: var(--torch); box-shadow: 0 0 22px #ff8a3c55, var(--shadow-lg); }
+
+/* 已走过 / 前方层：更紧凑，不可点击 */
+.node-done, .node-upcoming { padding: 12px 16px; min-width: 78px; cursor: default; animation: none; }
+.node-done .node-icon, .node-upcoming .node-icon { font-size: 30px; margin-bottom: 4px; }
+.node-done .node-label, .node-upcoming .node-label { font-size: 13px; }
+.node-done::before, .node-upcoming::before { display: none; }
+
+/* 前方层：灰暗预览，营造未知感 */
+.node-upcoming { opacity: .4; filter: grayscale(.45); }
+
+/* 已选节点：金边 + ✓ 角标，点亮整条路线 */
+.node-chosen { border-color: var(--torch) !important; box-shadow: 0 0 14px #ff8a3c66, var(--shadow) !important; opacity: 1; }
+.node-mark {
+  position: absolute; top: -9px; right: -9px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--torch); color: #1a130d; font-weight: 900; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px #000a;
+}
 
 /* ---------------- 战斗 ---------------- */
 .enemy-panel { padding: 14px; background:
@@ -396,5 +435,10 @@ body::before {
 @media (max-width: 420px) {
   .equip { width: 72px; min-height: 70px; } .equip-icon { font-size: 24px; }
   .die { width: 40px; height: 40px; padding: 5px; }
-  .node-icon { font-size: 34px; }
+  .node-current .node-icon { font-size: 34px; }
+  .map-row { gap: 8px; }
+  .map-floor { flex-basis: 32px; font-size: 12px; }
+  .map-conn { margin-left: 40px; }
+  .map-node { min-width: 96px; padding: 16px 10px 14px; }
+  .map-nodes { gap: 10px; }
 }

@@ -42,8 +42,11 @@
     </header>
 
     <div class="subbar">
-      <p class="tip">合并相同数字，凑出 <b>2048</b>！<span class="kbd-hint">方向键 / WASD / 滑动</span></p>
-      <button id="newGameBtn" class="btn">新游戏</button>
+      <p class="tip">合并相同数字，凑出 <b>2048</b>！<span class="kbd-hint">方向键 / WASD / 滑动 · 回退 U / Z</span></p>
+      <div class="actions">
+        <button id="undoBtn" class="btn btn-ghost" disabled aria-label="回退一步">↶ 回退</button>
+        <button id="newGameBtn" class="btn" aria-label="重新开始">重开</button>
+      </div>
     </div>
 
     <section id="board" class="board" aria-label="2048 棋盘">

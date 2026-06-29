@@ -19,6 +19,7 @@
     this.bestEl = this.root.getElementById("best");
     this.message = this.root.getElementById("gameMessage");
     this.messageText = this.message ? this.message.querySelector(".msg-text") : null;
+    this.undoBtn = this.root.getElementById("undoBtn");
     this.size = 4;
     this._lastScore = 0;
   }
@@ -49,6 +50,9 @@
     }
     this._lastScore = state.score;
     if (this.bestEl) this.bestEl.textContent = state.best;
+
+    // 回退按钮可用态：无历史可回退时禁用
+    if (this.undoBtn) this.undoBtn.disabled = !state.canUndo;
 
     // 重建 tile（经典做法：每帧重画，借助上一帧位置做滑动动画）
     const cont = this.tileContainer;

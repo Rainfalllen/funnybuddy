@@ -15,6 +15,7 @@
   const WIN_VALUE = 2048;
   const START_TILES = 2;
   const SAVE_KEY = "funnybuddy_2048";
+  const MAX_HISTORY = 20; // 回退栈最大深度，避免存档体积无限增长
 
   // 方向向量：dr=行增量，dc=列增量
   const VECTORS = {
@@ -55,6 +56,7 @@
     this.over = false;
     this.won = false;
     this.keepPlaying = false;
+    this._history = []; // 回退快照栈：每步移动前压入
   }
 
   /* ----------------------------- 事件 ----------------------------- */
@@ -121,6 +123,7 @@
     this.over = false;
     this.won = false;
     this.keepPlaying = false;
+    this._history = []; // 新开一局清空回退栈
     for (let i = 0; i < START_TILES; i++) this.addRandomTile(true);
     this._save();
     this.emit("init", this.getState());
@@ -193,6 +196,9 @@
     const traversals = this._buildTraversals(vector);
     let moved = false;
 
+    // 移动前先记录快照，仅在确实发生移动后才压入回退栈
+    const snapshot = this._snapshot();
+
     this._prepareTiles();
 
     traversals.rows.forEach((row) => {
@@ -226,6 +232,9 @@
     });
 
     if (moved) {
+      this._history.push(snapshot);
+      if (this._history.length > MAX_HISTORY) this._history.shift();
+
       this.addRandomTile();
       if (this.score > this.best) {
         this.best = this.score;
@@ -246,6 +255,51 @@
     this.keepPlaying = true;
     this.emit("change", this.getState());
     return this;
+  };
+
+  /* ----------------------------- 回退 ----------------------------- */
+  Game2048.prototype.canUndo = function () {
+    return this._history.length > 0;
+  };
+
+  // 撤销上一步：弹出快照并恢复棋盘
+  Game2048.prototype.undo = function () {
+    if (!this.canUndo()) return false;
+    const snap = this._history.pop();
+    this._restore(snap);
+    this._save();
+    this.emit("change", this.getState());
+    return true;
+  };
+
+  // 生成一份可序列化的轻量快照（只存值与状态，不存 tile 实例）
+  Game2048.prototype._snapshot = function () {
+    return {
+      grid: this.cells.map((rowArr) => rowArr.map((t) => (t ? t.value : 0))),
+      score: this.score,
+      won: this.won,
+      over: this.over,
+      keepPlaying: this.keepPlaying,
+    };
+  };
+
+  // 用快照重建棋盘（恢复出的牌不带新增/合并动画标记）
+  Game2048.prototype._restore = function (snap) {
+    this.cells = this._emptyBoard();
+    for (let r = 0; r < this.size; r++) {
+      for (let c = 0; c < this.size; c++) {
+        const v = snap.grid[r] && snap.grid[r][c];
+        if (v) {
+          const tile = makeTile(r, c, v);
+          tile.isNew = false;
+          this.cells[r][c] = tile;
+        }
+      }
+    }
+    this.score = snap.score;
+    this.won = !!snap.won;
+    this.over = !!snap.over;
+    this.keepPlaying = !!snap.keepPlaying;
   };
 
   Game2048.prototype.movesAvailable = function () {
@@ -298,6 +352,7 @@
       over: this.over,
       won: this.won,
       keepPlaying: this.keepPlaying,
+      canUndo: this.canUndo(),
       grid: grid,
       tiles: tiles,
     };
@@ -355,6 +410,7 @@
       this.won = !!data.won;
       this.over = !!data.over;
       this.keepPlaying = !!data.keepPlaying;
+      this._history = Array.isArray(data.history) ? data.history : [];
       this.emit("init", this.getState());
       this.emit("change", this.getState());
       return true;
@@ -381,6 +437,7 @@
         over: this.over,
         keepPlaying: this.keepPlaying,
         grid: this.cells.map((rowArr) => rowArr.map((t) => (t ? t.value : 0))),
+        history: this._history,
       };
       __storage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch (e) {

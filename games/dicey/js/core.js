@@ -135,7 +135,7 @@
           rows.push(this._shuffle(picks));
         }
       }
-      this.map = { rows, rowIndex: 0, cleared: false };
+      this.map = { rows, rowIndex: 0, cleared: false, path: [] };
     }
 
     _makeNode(type) {
@@ -170,6 +170,9 @@
       const node = row.find((n) => n.id === nodeId);
       if (!node) return { ok: false };
       this._currentNode = node;
+      // 记录玩家在本层选择的节点，用于在路线图上回溯已走过的路径
+      if (!this.map.path) this.map.path = [];
+      this.map.path[this.map.rowIndex] = node.id;
       switch (node.type) {
         case "battle":
         case "elite":
@@ -726,12 +729,21 @@
         } : null,
       };
       if (this.map) {
+        const path = this.map.path || [];
+        const nodeInfo = (n) => ({
+          id: n.id, type: n.type, meta: this.nodeMeta(n.type),
+          enemy: n.enemyId ? (() => { const e = findEnemy(n.enemyId); return { name: e.name, icon: e.icon, hp: e.maxHp }; })() : null,
+        });
         base.map = {
           rowIndex: this.map.rowIndex,
           totalRows: this.map.rows.length,
-          currentRow: (this.map.rows[this.map.rowIndex] || []).map((n) => ({
-            id: n.id, type: n.type, meta: this.nodeMeta(n.type),
-            enemy: n.enemyId ? (() => { const e = findEnemy(n.enemyId); return { name: e.name, icon: e.icon, hp: e.maxHp }; })() : null,
+          // 兼容旧用法：当前层节点
+          currentRow: (this.map.rows[this.map.rowIndex] || []).map(nodeInfo),
+          // 完整路线：每层带 done / current / upcoming 状态，并标记已选节点
+          rows: this.map.rows.map((row, r) => ({
+            index: r,
+            state: r < this.map.rowIndex ? "done" : (r === this.map.rowIndex ? "current" : "upcoming"),
+            nodes: row.map((n) => Object.assign(nodeInfo(n), { chosen: path[r] === n.id })),
           })),
         };
       }
@@ -776,7 +788,7 @@
             equipment: p.equipment.map((e) => e.id),
             limit: { charge: p.limit.charge },
           },
-          map: this.map ? { rows: this.map.rows, rowIndex: this.map.rowIndex } : null,
+          map: this.map ? { rows: this.map.rows, rowIndex: this.map.rowIndex, path: this.map.path || [] } : null,
         };
         // 战斗中不存盘（避免半场状态过于复杂）；仅在地图/商店/奖励阶段存
         if (this.phase !== "battle") __storage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -803,7 +815,7 @@
           equipment: (pd.equipment || []).map((id) => this._makeEquipInstance(findEquipment(id))).filter(Boolean),
           limit: { name: c.limitBreak.name, desc: c.limitBreak.desc, charge: (pd.limit && pd.limit.charge) || 0, chargeMax: c.limitBreak.chargeMax },
         };
-        this.map = d.map ? { rows: d.map.rows, rowIndex: d.map.rowIndex } : null;
+        this.map = d.map ? { rows: d.map.rows, rowIndex: d.map.rowIndex, path: d.map.path || [] } : null;
         this.battle = null; this.shop = null; this.reward = null;
         // 战斗/奖励阶段读档统一回到地图，避免半场态缺失
         this.phase = "map";

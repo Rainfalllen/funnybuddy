@@ -133,6 +133,23 @@ body {
 .btn:hover { filter: brightness(1.05); }
 .btn:active { transform: scale(0.95); }
 
+/* 操作按钮组 */
+.actions { display: flex; gap: 8px; }
+
+/* 次要（幽灵）按钮：用于回退 */
+.btn-ghost {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+}
+.btn-ghost:hover { filter: none; background: rgba(255, 255, 255, 0.1); }
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  filter: none;
+  transform: none;
+}
+
 /* ---- 棋盘 ---- */
 .board {
   --gap: 12px;

@@ -5,7 +5,7 @@
  * 策略：静态资源 cache-first，其它 network-first 回退缓存。
  * 升级 CACHE_VERSION 即可强制刷新。
  * ============================================================ */
-const CACHE_VERSION = "funnybuddy-hub-v3";
+const CACHE_VERSION = "funnybuddy-hub-v4";
 const PRECACHE_URLS = [
   "./",
   "./index.html",
@@ -38,6 +38,26 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
+  // 大厅入口(HTML 导航) 与游戏列表脚本 hub.js：network-first。
+  // 确保新增 / 调整游戏后，玩家刷新即可看到最新列表，不会被旧缓存卡住。
+  const isNavigation = req.mode === "navigate";
+  const isHubScript = url.pathname.endsWith("/js/hub.js") || url.pathname.endsWith("/hub.js");
+  if (isNavigation || isHubScript) {
+    event.respondWith(
+      fetch(req)
+        .then((resp) => {
+          if (resp && resp.status === 200 && resp.type === "basic") {
+            const copy = resp.clone();
+            caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
+          }
+          return resp;
+        })
+        .catch(() => caches.match(req).then((c) => c || caches.match("./index.html")))
+    );
+    return;
+  }
+
+  // 其它静态资源：cache-first（有缓存先用，后台再更新）。
   event.respondWith(
     caches.match(req).then((cached) => {
       const networkFetch = fetch(req)

@@ -45,6 +45,13 @@
       l: "right",
     };
     document.addEventListener("keydown", function (e) {
+      // 回退快捷键：U / Z，或 Ctrl/Cmd+Z
+      if (e.key === "u" || e.key === "U" || e.key === "z" || e.key === "Z") {
+        if (e.altKey) return;
+        e.preventDefault();
+        game.undo();
+        return;
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const dir = KEY_MAP[e.key];
       if (!dir) return;
@@ -99,6 +106,9 @@
     /* ----------------------- 按钮 ----------------------- */
     const newBtn = document.getElementById("newGameBtn");
     if (newBtn) newBtn.addEventListener("click", startNew);
+
+    const undoBtn = document.getElementById("undoBtn");
+    if (undoBtn) undoBtn.addEventListener("click", () => game.undo());
 
     const retryBtn = document.getElementById("retryBtn");
     if (retryBtn) retryBtn.addEventListener("click", startNew);

@@ -184,25 +184,76 @@
     // ============================================================
     // 地图
     // ============================================================
+    // 渲染整张地牢路线图：自上而下逐层展开，
+    // 已走过的层只保留所选节点（标记 ✓），当前层全部高亮可点击，前方层以预览态显示。
     _renderMap(s) {
       const m = s.map;
       if (!m) return;
       this.el.mapRowInfo.textContent = `第 ${m.rowIndex + 1} / ${m.totalRows} 层`;
       const track = this.el.mapTrack;
       track.innerHTML = "";
-      m.currentRow.forEach((node, i) => {
-        const card = document.createElement("button");
-        card.className = `map-node node-${node.type}`;
-        card.style.animationDelay = i * 0.08 + "s";
-        const enemy = node.enemy ? `<div class="node-enemy">${node.enemy.icon} ${node.enemy.name}<br><span class="node-hp">HP ${node.enemy.hp}</span></div>` : "";
-        card.innerHTML = `
-          <div class="node-icon">${node.meta.icon}</div>
-          <div class="node-label">${node.meta.label}</div>
-          ${enemy}
-        `;
-        card.onclick = () => { sfx("click"); this.handlers.onChooseNode(node.id); };
-        track.appendChild(card);
+      const rows = m.rows || [];
+
+      rows.forEach((row, ri) => {
+        // 层与层之间的连接线（已走过的路段点亮）
+        if (ri > 0) {
+          const conn = document.createElement("div");
+          conn.className = "map-conn" + (ri <= m.rowIndex ? " conn-done" : "");
+          conn.innerHTML = '<span class="conn-line"></span>';
+          track.appendChild(conn);
+        }
+
+        const rowEl = document.createElement("div");
+        rowEl.className = "map-row row-" + row.state;
+
+        // 楼层标签（Boss 层特别标注）
+        const isBoss = row.nodes.some((n) => n.type === "boss");
+        const floor = document.createElement("div");
+        floor.className = "map-floor";
+        floor.textContent = isBoss ? "BOSS" : (ri + 1) + "F";
+        rowEl.appendChild(floor);
+
+        // 已完成的层只显示玩家当时所选的节点；其余层显示全部
+        let nodes = row.nodes;
+        if (row.state === "done") {
+          const chosen = row.nodes.filter((n) => n.chosen);
+          if (chosen.length) nodes = chosen;
+        }
+
+        const wrap = document.createElement("div");
+        wrap.className = "map-nodes";
+        nodes.forEach((node, i) => {
+          const isCurrent = row.state === "current";
+          const card = document.createElement(isCurrent ? "button" : "div");
+          let cls = `map-node node-${node.type} node-${row.state}`;
+          if (node.chosen) cls += " node-chosen";
+          card.className = cls;
+          card.style.animationDelay = i * 0.05 + "s";
+          // 敌人详情只在当前层展示，聚焦当下决策、为前方保留未知感
+          const enemy = (isCurrent && node.enemy)
+            ? `<div class="node-enemy">${node.enemy.icon} ${node.enemy.name}<br><span class="node-hp">HP ${node.enemy.hp}</span></div>`
+            : "";
+          const mark = node.chosen ? '<div class="node-mark">✓</div>' : "";
+          card.innerHTML = `
+            ${mark}
+            <div class="node-icon">${node.meta.icon}</div>
+            <div class="node-label">${node.meta.label}</div>
+            ${enemy}
+          `;
+          if (isCurrent) {
+            card.onclick = () => { sfx("click"); this.handlers.onChooseNode(node.id); };
+          }
+          wrap.appendChild(card);
+        });
+        rowEl.appendChild(wrap);
+        track.appendChild(rowEl);
       });
+
+      // 滚动到当前层，方便玩家定位下一步
+      const cur = track.querySelector(".row-current");
+      if (cur && cur.scrollIntoView) {
+        setTimeout(() => cur.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
+      }
     }
 
     // ============================================================
