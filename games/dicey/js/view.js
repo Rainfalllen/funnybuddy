@@ -36,7 +36,7 @@
         help: $("helpOverlay"), helpClose: $("helpClose"),
 
         screenMap: $("screenMap"), screenBattle: $("screenBattle"),
-        mapTrack: $("mapTrack"), mapRowInfo: $("mapRowInfo"),
+        mapTrack: $("mapTrack"), mapRowInfo: $("mapRowInfo"), chapterBanner: $("chapterBanner"),
 
         // 玩家状态条（地图与战斗共用）
         pName: $("pName"), pHpFill: $("pHpFill"), pHpText: $("pHpText"),
@@ -46,7 +46,7 @@
 
         // 战斗：敌人
         eName: $("eName"), eIcon: $("eIcon"), eHpFill: $("eHpFill"), eHpText: $("eHpText"),
-        eBlock: $("eBlock"), eStatus: $("eStatus"), eEquip: $("eEquip"), eDice: $("eDice"),
+        eBlock: $("eBlock"), eStatus: $("eStatus"), eEquip: $("eEquip"), eDice: $("eDice"), eIntent: $("eIntent"),
         // 战斗：玩家
         pEquip: $("pEquip"), pDice: $("pDice"),
         turnInfo: $("turnInfo"),
@@ -58,6 +58,9 @@
         shop: $("shopOverlay"), shopGold: $("shopGold"), shopItems: $("shopItems"),
         shopOwned: $("shopOwned"), shopHealBtn: $("shopHealBtn"),
         shopRerollBtn: $("shopRerollBtn"), shopLeaveBtn: $("shopLeaveBtn"),
+
+        event: $("eventOverlay"), eventIcon: $("eventIcon"), eventName: $("eventName"),
+        eventDesc: $("eventDesc"), eventChoices: $("eventChoices"),
 
         end: $("endOverlay"), endTitle: $("endTitle"), endMsg: $("endMsg"),
         endRestart: $("endRestart"), endMenu: $("endMenu"),
@@ -133,8 +136,10 @@
       // 弹层
       this.el.reward.classList.toggle("hidden", s.phase !== "reward");
       this.el.shop.classList.toggle("hidden", s.phase !== "shop");
+      if (this.el.event) this.el.event.classList.toggle("hidden", s.phase !== "event");
       if (s.phase === "reward") this._renderReward(s);
       if (s.phase === "shop") this._renderShop(s);
+      if (s.phase === "event") this._renderEvent(s);
     }
 
     // ---------- 玩家状态条 ----------
@@ -189,6 +194,11 @@
     _renderMap(s) {
       const m = s.map;
       if (!m) return;
+      if (this.el.chapterBanner) {
+        this.el.chapterBanner.innerHTML =
+          `<span class="chapter-no">第 ${s.chapter} / ${s.maxChapter} 章</span>` +
+          `<span class="chapter-name">${s.chapterIcon || ""} ${s.chapterName || ""}</span>`;
+      }
       this.el.mapRowInfo.textContent = `第 ${m.rowIndex + 1} / ${m.totalRows} 层`;
       const track = this.el.mapTrack;
       track.innerHTML = "";
@@ -272,6 +282,7 @@
       this._renderStatusIcons(this.el.eStatus, e.status);
       this._renderEquipList(this.el.eEquip, e.equipment, false);
       this._renderDice(this.el.eDice, e.dice, false);
+      this._renderIntent(b.intent);
 
       // 玩家面板
       this._renderEquipList(this.el.pEquip, s.player.equipment, true);
@@ -285,6 +296,29 @@
       const lim = s.player.limit;
       this.el.limitBtn.disabled = !myTurn || lim.charge < lim.chargeMax;
       this.el.limitBtn.classList.toggle("ready", lim.charge >= lim.chargeMax);
+    }
+
+    // 渲染敌人意图预告：玩家回合时显示敌人下回合「将造成的伤害/护盾/状态」
+    _renderIntent(intent) {
+      const node = this.el.eIntent;
+      if (!node) return;
+      if (!intent) { node.innerHTML = ""; node.classList.remove("show"); return; }
+      node.classList.add("show");
+      if (intent.willDieToDot) {
+        node.innerHTML = `<span class="intent-chip intent-doom">☠ 将因持续伤害倒下</span>`;
+        return;
+      }
+      const chips = [];
+      if (intent.damage > 0) chips.push(`<span class="intent-chip intent-dmg">⚔ ${intent.damage}</span>`);
+      if (intent.shield > 0) chips.push(`<span class="intent-chip intent-shield">🛡 ${intent.shield}</span>`);
+      if (intent.heal > 0) chips.push(`<span class="intent-chip intent-heal">💚 ${intent.heal}</span>`);
+      Object.keys(intent.statuses || {}).forEach((k) => {
+        const def = DiceData.STATUSES[k];
+        if (def) chips.push(`<span class="intent-chip intent-st" style="--c:${def.color}">${def.icon}${intent.statuses[k]}</span>`);
+      });
+      node.innerHTML = chips.length
+        ? `<span class="intent-label">意图</span>${chips.join("")}`
+        : `<span class="intent-label intent-idle">敌人似乎在观望…</span>`;
     }
 
     // 渲染装备列表（玩家的可点击作为分配目标）
@@ -304,10 +338,18 @@
         }
         const cond = DiceData.describeCondition(eq.condition);
         const uses = eq.usesPerTurn > 1 ? `<span class="equip-uses">×${eq.usesLeft}</span>` : "";
+        // 累计槽：展示蓄能进度条（sumProgress / 阈值）
+        let charge = "";
+        if (eq.condition && eq.condition.type === "sum") {
+          const need = eq.condition.value || 1;
+          const pct = Math.max(0, Math.min(100, (eq.sumProgress / need) * 100));
+          charge = `<div class="equip-charge"><span style="width:${pct}%"></span><em>${eq.sumProgress}/${need}</em></div>`;
+        }
         card.innerHTML = `
           <div class="equip-cond" title="骰子条件">${cond}</div>
           <div class="equip-icon">${eq.icon || "▫"}</div>
           <div class="equip-name">${eq.name}${uses}</div>
+          ${charge}
         `;
         card.setAttribute("data-tip", `【${eq.name}】\n${eq.desc}\n每回合 ${eq.usesPerTurn} 次`);
         this._bindTip(card);
@@ -411,6 +453,31 @@
       this._renderReward(this.query.getState());
     }
     exitReplaceMode() { this.replaceMode = null; }
+
+    // ============================================================
+    // 事件（文档 §24）：展示文本与若干选项，不满足前置条件的选项置灰
+    // ============================================================
+    _renderEvent(s) {
+      const ev = s.event;
+      if (!ev) return;
+      if (this.el.eventIcon) this.el.eventIcon.textContent = ev.icon || "❔";
+      if (this.el.eventName) this.el.eventName.textContent = ev.name || "事件";
+      if (this.el.eventDesc) this.el.eventDesc.textContent = ev.desc || "";
+      const wrap = this.el.eventChoices;
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      ev.choices.forEach((c) => {
+        const btn = document.createElement("button");
+        btn.className = "btn event-choice" + (c.available ? "" : " disabled");
+        btn.textContent = c.text;
+        if (c.available) {
+          btn.onclick = () => { sfx("click"); this.handlers.onEventChoice(c.index); };
+        } else {
+          btn.disabled = true;
+        }
+        wrap.appendChild(btn);
+      });
+    }
 
     // ============================================================
     // 商店

@@ -83,6 +83,12 @@
       else if (r.reason === "capacity") view.toast("装备栏已满，先卖出一件吧");
     },
     onBuyHeal: () => { const r = core.buyHeal(); if (r.ok && window.SFX) window.SFX.heal(); else if (r.reason === "money") view.toast("金币不足"); },
+
+    // 事件：选择一个选项（结算消耗与收益）
+    onEventChoice: (index) => {
+      const r = core.chooseEventOption(index);
+      if (!r.ok && r.reason === "requires") view.toast("当前不满足该选项的条件");
+    },
     onUpgrade: (instId) => { const r = core.upgradeEquipment(instId); if (r.ok && window.SFX) window.SFX.buy(); else if (r.reason === "money") view.toast("金币不足"); },
     onSellEquip: (instId) => { const r = core.sellEquipment(instId); if (r.ok && window.SFX) window.SFX.coin(); },
     onReroll: () => { const r = core.rerollShop(); if (!r.ok && r.reason === "money") view.toast("金币不足"); },
@@ -132,6 +138,8 @@
 
   core.on("rewardOpen", () => { view.clearSelectedDie(); });
   core.on("shopOpen", () => {});
+  core.on("eventOpen", () => { view.clearSelectedDie(); });
+  core.on("chapterClear", (d) => { view.flash("gold"); view.toast(`${d.icon} 进入第 ${d.chapter} 章「${d.name}」`); });
 
   core.on("battleWin", () => { view.flash("gold"); });
   core.on("gameWin", (d) => view.showEnd(true, d));

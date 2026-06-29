@@ -121,9 +121,10 @@
       <div class="help-content">
         <p><b>核心</b>：每回合投出若干骰子，把<b>骰子拖/点进装备</b>触发效果——攻击、防御、治疗或施加状态，击败敌人并深入地牢。</p>
         <p><b>装备条件</b>：每件装备只接受满足条件的骰子（任意 / 偶数 / 奇数 / ≤N / ≥N / =N）。先点选一个骰子，再点击高亮的装备即可使用。</p>
-        <p><b>状态</b>：☠中毒、🔥燃烧每回合造成持续伤害；❄冰冻把对方最高骰子冻成 1；💧虚弱降低伤害；🛡护盾抵消伤害（自己回合开始清空）。</p>
+        <p><b>状态</b>：☠中毒、🔥燃烧每回合造成持续伤害；❄冰冻把对方最高骰子冻成 1；💧虚弱降低伤害；🌵荆棘被攻击时反弹伤害；🎯易伤受到的伤害提高；🛡护盾抵消伤害（自己回合开始清空）。</p>
+        <p><b>敌人意图</b>：你的回合就能看到敌人下回合<b>将造成的伤害/护盾/状态</b>，据此决定进攻还是防御。</p>
         <p><b>大招</b>：受到伤害积累能量，充满后可重掷所有骰子，扭转坏运气。</p>
-        <p><b>地牢</b>：每层在战斗 / 精英 / 宝箱 / 商店 / 营火中择一前进。战斗后三选一装备、升级与成长，最终挑战 Boss 地牢领主。</p>
+        <p><b>地牢</b>：每层在战斗 / 精英 / 宝箱 / 商店 / 营火 / ❔事件中择一前进。事件提供风险与收益的抉择。击败本章 Boss 后深入下一章，敌人愈发凶险，直至征服全部章节。</p>
       </div>
       <button id="helpClose" class="btn btn-sub">关闭</button>
     </div>
@@ -153,6 +154,7 @@
 
     <!-- 地图界面 -->
     <section id="screenMap" class="screen hidden">
+      <div class="chapter-banner" id="chapterBanner"></div>
       <div class="map-head">🗺️ <span id="mapRowInfo">第 1 / 6 层</span> · 选择前进路线</div>
       <div id="mapTrack" class="map-track"></div>
     </section>
@@ -170,6 +172,7 @@
               <span class="block-chip hidden" id="eBlock">🛡 0</span>
               <span class="status-row" id="eStatus"></span>
             </div>
+            <div class="enemy-intent" id="eIntent"></div>
           </div>
         </div>
         <div class="row-label">敌人装备</div>
@@ -222,6 +225,16 @@
         <button id="shopRerollBtn" class="btn btn-sub">🔄 刷新</button>
         <button id="shopLeaveBtn" class="btn btn-end">离开商店 →</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 事件弹层 -->
+  <div id="eventOverlay" class="overlay hidden">
+    <div class="event-box">
+      <div class="event-icon" id="eventIcon">❔</div>
+      <h2 id="eventName">事件</h2>
+      <p id="eventDesc" class="event-desc"></p>
+      <div id="eventChoices" class="event-choices"></div>
     </div>
   </div>
 

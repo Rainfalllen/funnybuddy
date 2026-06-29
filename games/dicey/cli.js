@@ -43,23 +43,52 @@ function makeRng(seed) {
 // ============================================================
 // 自动决策器：在玩家回合，把每个骰子分配给「评分最高」的装备
 // ============================================================
-function actionScore(eff, dieValue, player, enemy) {
+function actionScore(eff, dieValue, player, enemy, eq) {
   const val = Data.resolveValue(eff.value, dieValue);
+  // 累计槽（sum）：投入一个骰子只推进进度，未达阈值不会触发效果。
+  // 故按「进度价值」评分，避免把每次投入都当成整段伤害而无脑喂炮。
+  if (eq && eq.condition && eq.condition.type === "sum") {
+    const need = eq.condition.value || 1;
+    const after = (eq.sumProgress || 0) + dieValue;
+    if (after < need) return dieValue * 0.6;              // 仅蓄能：价值偏低
+    // 达成阈值：本次投入即触发，按真实效果计分
+    if (eff.type === "damage") {
+      let s = val;
+      if (val >= enemy.hp + enemy.block) s += 100;
+      return s;
+    }
+  }
   switch (eff.type) {
     case "damage": {
-      let s = val;
-      if (val >= enemy.hp + enemy.block) s += 100;          // 可击杀：最高优先
+      let s = eff.pierce ? val - Math.min(val, enemy.block) + val * 0.3 : val; // 穿透更看重
+      const times = eff.times && eff.times > 1 ? eff.times : 1;
+      s *= times;
+      if (val * times >= enemy.hp + (eff.pierce ? 0 : enemy.block)) s += 100;  // 可击杀：最高优先
       return s;
     }
     case "poison": return val * 1.6;
     case "burn":   return val * 1.5;
     case "freeze": return 3;
     case "weak":   return val * 1.2;
+    case "vuln":   return val * 1.3;
+    case "thorns": return val * 0.8;
     // 血量健康时不太需要防御/治疗，给低权重
     case "shield": return player.hp < player.maxHp * 0.5 ? val * 0.9 : val * 0.2;
     case "heal":   return player.hp < player.maxHp * 0.6 ? val : 0.2;
     default:       return 0;
   }
+}
+
+// 估算一件装备「用于防御」的价值（护盾/治疗/净化），不含进攻
+function defenseValue(eq, dieValue, player) {
+  let v = 0;
+  for (const eff of eq.effects) {
+    const val = Data.resolveValue(eff.value, dieValue);
+    if (eff.type === "shield") v += val;
+    else if (eff.type === "heal") v += Math.min(val, player.maxHp - player.hp);
+    else if (eff.type === "thorns") v += val * 0.4;
+  }
+  return v;
 }
 
 function playerAutoTurn(core) {
@@ -78,13 +107,52 @@ function playerAutoTurn(core) {
       if (avg <= 2.2) { core.useLimitBreak(); continue; }
     }
 
+    // 本回合总可造成的「立即伤害」上限粗估（用于判断能否斩杀）——只数能直接打出的攻击
+    const lethalNow = (() => {
+      let dmg = 0;
+      for (const die of dice) {
+        let bestHit = 0;
+        for (const eq of p.equipment) {
+          if (eq.usesLeft <= 0) continue;
+          if (!Data.checkCondition(eq.condition, die.value)) continue;
+          if (eq.condition && eq.condition.type === "sum") continue; // 累计槽不计入即时斩杀
+          for (const eff of eq.effects) {
+            if (eff.type === "damage") {
+              const v = Data.resolveValue(eff.value, die.value) * (eff.times > 1 ? eff.times : 1);
+              if (v > bestHit) bestHit = v;
+            }
+          }
+        }
+        dmg += bestHit;
+      }
+      return dmg >= enemy.hp; // 护盾忽略不计，仅作粗略斩杀判断
+    })();
+
+    // 意图感知防御：若无法本回合斩杀且预判受到的伤害会击穿当前护盾，先用一个骰子加固
+    const intent = st.battle.intent;
+    const incoming = intent && !intent.willDieToDot ? intent.damage : 0;
+    const needDefense = !lethalNow && incoming > p.block && p.hp - (incoming - p.block) <= p.maxHp * 0.45;
+    if (needDefense) {
+      let bestDef = null;
+      for (const die of dice) {
+        for (const eq of p.equipment) {
+          if (eq.usesLeft <= 0) continue;
+          if (!Data.checkCondition(eq.condition, die.value)) continue;
+          const dv = defenseValue(eq, die.value, p);
+          if (dv <= 0) continue;
+          if (!bestDef || dv > bestDef.dv) bestDef = { die, eq, dv };
+        }
+      }
+      if (bestDef) { const r = core.assignDie(bestDef.die.id, bestDef.eq.instId); if (r.ok) continue; }
+    }
+
     let best = null;
     for (const die of dice) {
       for (const eq of p.equipment) {
         if (eq.usesLeft <= 0) continue;
         if (!Data.checkCondition(eq.condition, die.value)) continue;
         let score = 0;
-        for (const eff of eq.effects) score += actionScore(eff, die.value, p, enemy);
+        for (const eff of eq.effects) score += actionScore(eff, die.value, p, enemy, eq);
         if (!best || score > best.score) best = { die, eq, score };
       }
     }
@@ -146,6 +214,18 @@ function autoShop(core) {
   core.leaveShop();
 }
 
+// 事件阶段：在可选项里挑一个收益指令最丰富的（带兜底「离开」），保证流程推进
+function autoEvent(core) {
+  const st = core.getState();
+  if (st.phase !== "event") return;
+  const choices = st.event.choices.filter((c) => c.available);
+  if (!choices.length) { core.leaveEvent(); return; }
+  // 简单偏好：避开纯扣血的强行选项，优先靠前（通常为升级/获取装备）的可用项
+  const pick = choices.find((c) => !/强行|献祭|生命换/.test(c.text)) || choices[0];
+  log(`   ❔ 事件【${st.event.name}】→ 选择：${pick.text}`);
+  core.chooseEventOption(pick.index);
+}
+
 // 地图阶段：优先精英/宝箱（高收益），其次商店/战斗，最后营火
 function autoMap(core) {
   const st = core.getState();
@@ -185,6 +265,7 @@ function playOneGame(seed) {
     else if (phase === "battle") playerAutoTurn(core);
     else if (phase === "reward") autoReward(core);
     else if (phase === "shop") autoShop(core);
+    else if (phase === "event") autoEvent(core);
     else if (phase === "gameover") break;
     else break;
   }

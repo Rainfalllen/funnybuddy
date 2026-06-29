@@ -29,11 +29,14 @@
     burn:   { key: "burn",   name: "燃烧", icon: "🔥", color: "#ff7a45", desc: "回合开始受到层数点伤害，随后层数减半" },
     freeze: { key: "freeze", name: "冰冻", icon: "❄",  color: "#58c8f0", desc: "下个回合最高点数的骰子被冻成 1" },
     weak:   { key: "weak",   name: "虚弱", icon: "💧", color: "#b08fe0", desc: "造成的伤害降低约 1/3，每回合 -1 层" },
+    thorns: { key: "thorns", name: "荆棘", icon: "🌵", color: "#9ad14b", desc: "被攻击时对攻击者反弹层数点伤害，每回合 -1 层" },
+    vuln:   { key: "vuln",   name: "易伤", icon: "🎯", color: "#ef6a6a", desc: "受到的攻击伤害提高 50%，每回合 -1 层" },
     shield: { key: "shield", name: "护盾", icon: "🛡", color: "#cfd8dc", desc: "抵消等量伤害，自己回合开始时清空" },
   };
 
   // ---------- 骰子条件 ----------
   // 判定一个点数 value 是否满足条件 cond = { type, value? }
+  // 注：sum（累计槽）对单个骰子总是「可放入」，是否触发由 core 的累计进度决定。
   function checkCondition(cond, value) {
     if (!cond) return true;
     switch (cond.type) {
@@ -43,6 +46,7 @@
       case "max":   return value <= cond.value;       // 只能放入 ≤ value 的骰子
       case "min":   return value >= cond.value;       // 只能放入 ≥ value 的骰子
       case "exact": return value === cond.value;       // 只能放入指定点数
+      case "sum":   return true;                        // 累计槽：任意骰子皆可投入累加
       default:      return false;
     }
   }
@@ -57,6 +61,7 @@
       case "max":   return "≤" + cond.value;
       case "min":   return "≥" + cond.value;
       case "exact": return "=" + cond.value;
+      case "sum":   return "累计" + cond.value;
       default:      return "?";
     }
   }
@@ -71,6 +76,7 @@
       case "max":   return 1.1;
       case "min":   return 1.2;
       case "exact": return 1.8;
+      case "sum":   return 2.0;
       default:      return 1;
     }
   }
@@ -107,8 +113,28 @@
     burn:   { verb: "施加", unit: "燃烧" },
     freeze: { verb: "施加", unit: "冰冻" },
     weak:   { verb: "施加", unit: "虚弱" },
+    thorns: { verb: "获得", unit: "荆棘" },
+    vuln:   { verb: "施加", unit: "易伤" },
+  };
+
+  // 骰子改造操作（modify）：作用于「本回合其余未使用的骰子」
+  const MODIFY_OP = {
+    plus:   { label: "全部 +1", apply: (v) => Math.min(DICE.MAX, v + 1) },
+    minus:  { label: "全部 -1", apply: (v) => Math.max(DICE.MIN, v - 1) },
+    flip:   { label: "全部翻面", apply: (v) => DICE.FLIP_BASE - v },
+    reroll: { label: "全部重掷", apply: null /* core 用 rng 处理 */ },
   };
   function describeEffect(eff) {
+    if (eff.type === "modify") {
+      const op = MODIFY_OP[eff.op];
+      return op ? `其余骰子${op.label}` : "改造骰子";
+    }
+    if (eff.type === "cleanse") return "净化一个负面状态";
+    if (eff.type === "damage") {
+      const times = eff.times && eff.times > 1 ? `${eff.times} 次 ` : "";
+      const pierce = eff.pierce ? "穿透" : "";
+      return `造成 ${times}${describeValue(eff.value)} 点${pierce}伤害`;
+    }
     const v = EFFECT_VERB[eff.type] || { verb: "", unit: eff.type };
     return `${v.verb} ${describeValue(eff.value)} ${v.unit}`;
   }
@@ -120,10 +146,12 @@
     return `${head} → ${body}`;
   }
 
-  // 效果默认作用目标：进攻类→对手，增益类→自己
+  // 效果默认作用目标：进攻类→对手，增益/自我类→自己
   function effectTarget(eff) {
     if (eff.target) return eff.target;
-    return (eff.type === "shield" || eff.type === "heal") ? "self" : "enemy";
+    return (eff.type === "shield" || eff.type === "heal" || eff.type === "thorns" ||
+            eff.type === "modify" || eff.type === "cleanse")
+      ? "self" : "enemy";
   }
 
   // ============================================================
@@ -172,6 +200,17 @@
       condition: { type: "any" }, effects: [{ type: "damage", value: 3 }],
       price: 8, tags: ["attack"] },
 
+    // —— 进阶攻击：穿透 / 多段 / 易伤（文档 §22.2.1） ——
+    { id: "estoc", name: "穿甲刺", icon: "🩸", size: 1, usesPerTurn: 1, rarity: "rare",
+      condition: { type: "min", value: 4 }, effects: [{ type: "damage", value: "dice", pierce: true }],
+      price: 7, tags: ["attack"] },
+    { id: "twin_claw", name: "双爪", icon: "🐾", size: 2, usesPerTurn: 1, rarity: "rare",
+      condition: { type: "any" }, effects: [{ type: "damage", value: "dice", times: 2 }],
+      price: 8, tags: ["attack"] },
+    { id: "hunters_mark", name: "猎人标记", icon: "🎯", size: 1, usesPerTurn: 1, rarity: "rare",
+      condition: { type: "odd" }, effects: [{ type: "vuln", value: 2 }, { type: "damage", value: 2 }],
+      price: 6, tags: ["attack"] },
+
     // —— 防御 / 治疗 ——
     { id: "buckler", name: "圆盾", icon: "🛡️", size: 1, usesPerTurn: 1, rarity: "common",
       condition: { type: "any" }, effects: [{ type: "shield", value: "dice" }],
@@ -180,11 +219,33 @@
       condition: { type: "any" }, effects: [{ type: "shield", value: "dice+2" }],
       price: 7, tags: ["defense"] },
     { id: "spiked_shield", name: "荆棘盾", icon: "🛡️", size: 2, usesPerTurn: 1, rarity: "rare",
-      condition: { type: "any" }, effects: [{ type: "shield", value: "dice" }, { type: "damage", value: 2 }],
-      price: 7, tags: ["defense", "attack"] },
+      condition: { type: "any" }, effects: [{ type: "shield", value: "dice" }, { type: "thorns", value: 2 }, { type: "damage", value: 1 }],
+      price: 7, tags: ["defense"] },
     { id: "bandage", name: "绷带", icon: "🩹", size: 1, usesPerTurn: 1, rarity: "common",
       condition: { type: "max", value: 3 }, effects: [{ type: "heal", value: "dice+2" }],
       price: 5, tags: ["heal"] },
+    { id: "thorn_vest", name: "棘刺甲", icon: "🌵", size: 1, usesPerTurn: 1, rarity: "rare",
+      condition: { type: "odd" }, effects: [{ type: "thorns", value: 3 }],
+      price: 6, tags: ["defense"], weight: 0.6 },
+    { id: "purify_bell", name: "净化铃", icon: "🔔", size: 1, usesPerTurn: 1, rarity: "rare",
+      condition: { type: "max", value: 3 }, effects: [{ type: "cleanse", value: 1 }, { type: "shield", value: "dice" }],
+      price: 6, tags: ["defense"], weight: 0.7 },
+
+    // —— 骰子改造（不直接造成伤害，而是改善其余骰子的质量；技巧向，降低出现权重避免污染随机池） ——
+    { id: "whetstone", name: "磨刀石", icon: "🪨", size: 1, usesPerTurn: 1, rarity: "common",
+      condition: { type: "max", value: 3 }, effects: [{ type: "modify", op: "plus" }],
+      price: 5, tags: ["utility"], weight: 0.5 },
+    { id: "mirror", name: "镜面符", icon: "🪞", size: 1, usesPerTurn: 1, rarity: "rare",
+      condition: { type: "min", value: 5 }, effects: [{ type: "modify", op: "flip" }],
+      price: 6, tags: ["utility"], weight: 0.5 },
+    { id: "dice_cup", name: "骰盅", icon: "🎰", size: 2, usesPerTurn: 1, rarity: "rare",
+      condition: { type: "max", value: 2 }, effects: [{ type: "modify", op: "reroll" }],
+      price: 7, tags: ["utility"], weight: 0.5 },
+
+    // —— 累计槽：多次投入骰子，总和达阈值后造成大额伤害 ——
+    { id: "charge_cannon", name: "蓄能炮", icon: "💣", size: 2, usesPerTurn: 3, rarity: "epic",
+      condition: { type: "sum", value: 8 }, effects: [{ type: "damage", value: 15 }],
+      price: 9, tags: ["attack"], weight: 0.5 },
 
     // —— 状态流派 ——
     { id: "poison_vial", name: "毒瓶", icon: "🧪", size: 1, usesPerTurn: 1, rarity: "common",
@@ -283,6 +344,67 @@
   }
 
   // ============================================================
+  // 事件池（文档 §24）
+  //   每个事件提供若干 choices；选项含 cost（消耗）与 reward（收益），
+  //   全部为可序列化的语义化指令，由 core.resolveEvent 解释执行。
+  //   cost / reward 支持的键：
+  //     hp:数值        生命变化（cost 为扣除，reward 为回复；负数亦可）
+  //     maxHp:数值     最大生命提升
+  //     gold:数值      金币变化
+  //     upgradeRandom  随机升级一件可升级装备
+  //     randomEquip    随机获得一件装备（满则进入替换/丢弃）
+  //     rewardChoice   打开一次三选一装备奖励（可带 tag 过滤构筑方向）
+  //     cleanseAll     清除自身全部负面状态（局外无意义，预留）
+  //     chance         概率分支：[{ weight, reward }]
+  //   requires：选项可用前置条件（minGold / minHp / hasUpgradable）
+  // ============================================================
+  const EVENTS = [
+    {
+      id: "dice_altar", name: "神秘骰坛", icon: "🎲",
+      desc: "一座刻满点数符号的石坛静静发光，似乎在等待献祭。",
+      choices: [
+        { text: "献祭 4 点生命，升级一件随机装备", cost: { hp: 4 }, reward: { upgradeRandom: 1 }, requires: { minHp: 5, hasUpgradable: true } },
+        { text: "投入 3 金币，获得一件随机装备", cost: { gold: 3 }, reward: { randomEquip: 1 }, requires: { minGold: 3 } },
+        { text: "凝视坛心，恢复 6 点生命", cost: {}, reward: { hp: 6 } },
+        { text: "敬而远之，离开", cost: {}, reward: {} },
+      ],
+    },
+    {
+      id: "broken_forge", name: "破损铁匠铺", icon: "🔥",
+      desc: "炉火尚未熄灭，但工具已经生锈。也许还能再打一件兵器。",
+      choices: [
+        { text: "支付 6 金币，升级一件随机装备", cost: { gold: 6 }, reward: { upgradeRandom: 1 }, requires: { minGold: 6, hasUpgradable: true } },
+        { text: "强行使用炉火：一半概率升级装备，一半概率受到 5 点伤害", cost: {},
+          reward: { chance: [{ weight: 50, reward: { upgradeRandom: 1 } }, { weight: 50, reward: { hp: -5 } }] }, requires: { hasUpgradable: true } },
+        { text: "翻找废料，得到 5 金币", cost: {}, reward: { gold: 5 } },
+        { text: "离开", cost: {}, reward: {} },
+      ],
+    },
+    {
+      id: "wandering_merchant", name: "流浪商人", icon: "🧙",
+      desc: "一个裹着斗篷的商人从阴影里探出头：「想做笔买卖吗？」",
+      choices: [
+        { text: "花 4 金币，从三件装备里挑一件", cost: { gold: 4 }, reward: { rewardChoice: { source: "event" } }, requires: { minGold: 4 } },
+        { text: "用 8 点生命换取 8 金币", cost: { hp: 8 }, reward: { gold: 8 }, requires: { minHp: 9 } },
+        { text: "婉拒离开", cost: {}, reward: {} },
+      ],
+    },
+    {
+      id: "twin_shrine", name: "双生神龛", icon: "⚖️",
+      desc: "两座神龛分立两侧，一座象征力量，一座象征坚韧。只能选其一。",
+      choices: [
+        { text: "力量之龛：最大生命 +2，并获得一件攻击装备", cost: {}, reward: { maxHp: 2, rewardChoice: { source: "event", tag: "attack" } } },
+        { text: "坚韧之龛：立即回复至满血", cost: {}, reward: { fullHeal: 1 } },
+        { text: "两手空空地离开", cost: {}, reward: {} },
+      ],
+    },
+  ];
+
+  function findEvent(id) {
+    return EVENTS.find((e) => e.id === id) || null;
+  }
+
+  // ============================================================
   // 角色定义（MVP 单角色：战士）
   // ============================================================
   const CHARACTER = {
@@ -306,16 +428,29 @@
   ];
 
   // ============================================================
+  // 章节（多章节地牢，文档 §10 / §14）
+  //   一局由多个章节串联，每章是一个独立的 6 层地牢，击败本章 Boss 后
+  //   深入下一章。越深的章节敌人血量更厚、伤害更高（hpScale / dmgScale），
+  //   Boss 也换上更具压迫感的名号与形象。章节间会回复部分生命作为喘息。
+  // ============================================================
+  const CHAPTERS = [
+    { name: "腐朽地窖", icon: "🕯️", hpScale: 1.0, dmgScale: 1.0, bossName: "地牢守卫", bossIcon: "🗿" },
+    { name: "熔火回廊", icon: "🔥", hpScale: 1.4, dmgScale: 1.25, bossName: "炼狱魔将", bossIcon: "👹" },
+    { name: "王座深渊", icon: "👑", hpScale: 1.85, dmgScale: 1.5, bossName: "地牢领主", bossIcon: "🐉" },
+  ];
+
+  // ============================================================
   // 导出（浏览器挂 window.DiceData；Node 可 require）
   // ============================================================
   const exported = {
-    DICE, STATUSES,
+    DICE, STATUSES, MODIFY_OP,
     rollDie,
     checkCondition, describeCondition, conditionMult,
     resolveValue, describeValue, describeEffect, describeEquipment, effectTarget,
     EQUIPMENT_POOL, REWARD_EQUIPMENT, findEquipment,
     ENEMY_POOL, findEnemy,
-    CHARACTER, LEVELS,
+    EVENTS, findEvent,
+    CHARACTER, LEVELS, CHAPTERS,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = exported;

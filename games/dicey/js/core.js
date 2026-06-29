@@ -21,7 +21,7 @@
 
   const {
     STATUSES, rollDie, checkCondition, resolveValue, effectTarget,
-    REWARD_EQUIPMENT, findEquipment, findEnemy, CHARACTER, LEVELS,
+    REWARD_EQUIPMENT, findEquipment, findEnemy, findEvent, CHARACTER, LEVELS, CHAPTERS,
   } = Data;
 
   // ---- 存储抽象：仅浏览器启用 localStorage；命令行下安全降级为 null ----
@@ -75,6 +75,25 @@
       }
       return a;
     }
+    // 按 weight 不放回地加权抽取 n 件（默认权重 1）。用于奖励/商店，
+    // 让技巧向工具装备出现频率更低，避免污染随机池（文档 §24.2）。
+    _pickWeighted(pool, n) {
+      const items = pool.slice();
+      const out = [];
+      while (out.length < n && items.length) {
+        let total = 0;
+        items.forEach((it) => (total += it.weight != null ? it.weight : 1));
+        let r = this._rng() * total;
+        let idx = 0;
+        for (; idx < items.length; idx++) {
+          r -= items[idx].weight != null ? items[idx].weight : 1;
+          if (r <= 0) break;
+        }
+        if (idx >= items.length) idx = items.length - 1;
+        out.push(items.splice(idx, 1)[0]);
+      }
+      return out;
+    }
 
     emit(event, payload) {
       super.emit(event, payload);
@@ -99,22 +118,30 @@
       this.battle = null;
       this.shop = null;
       this.reward = null;
-      this.phase = "map";          // map | battle | reward | shop | gameover
+      this.event = null; this._eventDef = null;
+      this.chapter = 1;            // 当前章节（多章节地牢，1 起算）
+      this.phase = "map";          // map | battle | reward | shop | event | gameover
       this._buildMap();
       this.clearSave();
       this._log("🗺️ 踏入地牢，祝你好运！", "good");
       this.emit("change");
     }
 
-    // 把装备定义实例化（携带战斗内的可变字段 usesLeft / 实例 id）
+    // 把装备定义实例化（携带战斗内的可变字段 usesLeft / 累计槽进度 / 实例 id）
     _makeEquipInstance(def) {
-      return Object.assign({}, def, { instId: uid("eq"), usesLeft: def.usesPerTurn });
+      return Object.assign({}, def, { instId: uid("eq"), usesLeft: def.usesPerTurn, sumProgress: 0 });
+    }
+
+    // 当前章节配置（越界时安全回退到末章）
+    _chapter() {
+      const i = Math.min(Math.max((this.chapter || 1) - 1, 0), CHAPTERS.length - 1);
+      return CHAPTERS[i];
     }
 
     // ---------- 地图 ----------
     _buildMap() {
       const rows = [];
-      const types = ["battle", "battle", "elite", "treasure", "shop", "heal"];
+      const types = ["battle", "battle", "elite", "treasure", "shop", "heal", "event"];
       for (let r = 0; r < CONFIG.MAP_ROWS; r++) {
         if (r === 0) {
           // 首层：固定一场普通战斗，作为教学
@@ -148,6 +175,8 @@
         node.enemyId = this._pick(pool).id;
       } else if (type === "boss") {
         node.enemyId = Data.ENEMY_POOL.find((e) => e.boss).id;
+      } else if (type === "event") {
+        node.eventId = this._pick(Data.EVENTS).id;
       }
       return node;
     }
@@ -159,6 +188,7 @@
         treasure: { icon: "🎁", label: "宝箱" },
         shop:     { icon: "🛒", label: "商店" },
         heal:     { icon: "🔥", label: "营火" },
+        event:    { icon: "❔", label: "事件" },
         boss:     { icon: "🐉", label: "Boss" },
       })[type] || { icon: "❓", label: "未知" };
     }
@@ -186,6 +216,9 @@
         case "shop":
           this._openShop();
           break;
+        case "event":
+          this._openEvent(findEvent(node.eventId));
+          break;
         case "heal": {
           const amt = Math.min(CONFIG.HEAL_NODE_AMOUNT, this.player.maxHp - this.player.hp);
           this.player.hp += amt;
@@ -200,15 +233,30 @@
       return { ok: true };
     }
 
-    // 节点结算完毕，推进到下一层（或通关）
+    // 节点结算完毕，推进到下一层；走完一章则进入下一章，最终章 Boss 后才通关
     _advanceMap() {
       this.map.rowIndex++;
       this._currentNode = null;
       if (this.map.rowIndex >= this.map.rows.length) {
+        // —— 本章已通关（刚击败本章 Boss）——
+        if (this.chapter < CHAPTERS.length) {
+          this.chapter++;
+          // 进入更深章节：回复约三成生命作为喘息，并重建更凶险的地牢
+          const heal = Math.min(this.player.maxHp - this.player.hp, Math.ceil(this.player.maxHp * 0.3));
+          if (heal > 0) this.player.hp += heal;
+          this._buildMap();
+          this.phase = "map";
+          const ch = this._chapter();
+          this._log(`${ch.icon} 你深入地牢更深处——第 ${this.chapter} 章「${ch.name}」，敌人愈发凶险${heal > 0 ? `（生命回复 ${heal}）` : ""}`, "good");
+          this.emit("chapterClear", { chapter: this.chapter, name: ch.name, icon: ch.icon, heal });
+          this.emit("change");
+          return;
+        }
+        // —— 最终章 Boss 已败 → 全程通关 ——
         this.phase = "gameover";
-        this._log("🏆 你击败了地牢领主，成功通关！", "good");
+        this._log("🏆 你击败了地牢领主，征服了所有章节，成功通关！", "good");
         this.emit("change");
-        this.emit("gameWin", { gold: this.player.gold, level: this.player.level });
+        this.emit("gameWin", { gold: this.player.gold, level: this.player.level, chapter: this.chapter });
         return;
       }
       this.phase = "map";
@@ -219,19 +267,29 @@
     // 战斗
     // ============================================================
     _startBattle(enemyDef, nodeType) {
+      // 章节强度缩放：越深的章节敌人血量更厚、伤害更高、奖励更丰
+      const ch = this._chapter();
+      const hpScale = ch.hpScale || 1;
+      const chIdx = (this.chapter || 1) - 1;
+      const scaledHp = Math.round(enemyDef.maxHp * hpScale);
       const enemy = {
-        id: enemyDef.id, name: enemyDef.name, icon: enemyDef.icon,
-        maxHp: enemyDef.maxHp, hp: enemyDef.maxHp,
+        id: enemyDef.id,
+        // Boss 在不同章节换上更具压迫感的名号与形象
+        name: enemyDef.boss ? ch.bossName : enemyDef.name,
+        icon: enemyDef.boss ? ch.bossIcon : enemyDef.icon,
+        maxHp: scaledHp, hp: scaledHp,
         diceCount: enemyDef.diceCount, ai: enemyDef.ai || "balanced",
-        rewardGold: enemyDef.rewardGold, rewardXp: enemyDef.rewardXp,
+        rewardGold: Math.round(enemyDef.rewardGold * (1 + chIdx * 0.4)),
+        rewardXp: Math.round(enemyDef.rewardXp * (1 + chIdx * 0.3)),
+        dmgScale: ch.dmgScale || 1,         // 敌人伤害按章节放大（在伤害结算/意图中生效）
         boss: !!enemyDef.boss, elite: !!enemyDef.elite,
-        block: 0, status: { poison: 0, burn: 0, freeze: 0, weak: 0 },
+        block: 0, status: { poison: 0, burn: 0, freeze: 0, weak: 0, thorns: 0, vuln: 0 },
         equipment: enemyDef.equipment.map((e) => this._makeEquipInstance(e)),
         dice: [],
       };
       // 重置玩家战斗态
       this.player.block = 0;
-      this.player.status = { poison: 0, burn: 0, freeze: 0, weak: 0 };
+      this.player.status = { poison: 0, burn: 0, freeze: 0, weak: 0, thorns: 0, vuln: 0 };
       this.player.dice = [];
       this.player.equipment.forEach((eq) => (eq.usesLeft = eq.usesPerTurn));
 
@@ -247,13 +305,80 @@
       const p = this.player;
       this.battle.turn = "player";
       p.block = 0;
-      p.equipment.forEach((eq) => (eq.usesLeft = eq.usesPerTurn));
+      p.equipment.forEach((eq) => { eq.usesLeft = eq.usesPerTurn; eq.sumProgress = 0; });
       if (this._tickStatuses(p, "player")) return;     // 中毒/燃烧可能致死
       p.dice = this._roll(p.diceCount);
       this._applyFreeze(p);
+      // 预先为敌人投骰并推演意图，让玩家在自己回合就能看到「敌人即将做什么」
+      this._prepareEnemyIntent();
       this._log(`🎲 你的回合，投出 [${p.dice.map((d) => d.value).join(", ")}]`, "play");
       this.emit("diceRolled", { who: "player", dice: p.dice.map((d) => ({ id: d.id, value: d.value })) });
       this.emit("change");
+    }
+
+    // ---------- 敌人意图预告 ----------
+    // 在玩家回合开始时，为敌人预投骰子（存入 enemy.pendingDice，敌人回合直接使用），
+    // 并以「干跑」方式推演 AI 会怎么用这些骰子，汇总成 intent 供 UI 展示。
+    // 推演只读不结算，因此不会改变任何真实血量/状态。
+    _prepareEnemyIntent() {
+      const e = this.battle && this.battle.enemy;
+      if (!e) return;
+      const p = this.player;
+      // 预测敌人回合开始时是否会因毒/燃烧死亡——若会，则无意图
+      const willDieToDot = (e.status.poison + e.status.burn) >= e.hp;
+      e.pendingDice = this._roll(e.diceCount);
+      // 冰冻对预投骰子的影响（与真实回合一致），并在此消耗冰冻层数（敌人回合不再二次结算）
+      if (e.status.freeze > 0 && e.pendingDice.length) {
+        let hi = e.pendingDice[0];
+        e.pendingDice.forEach((d) => { if (d.value > hi.value) hi = d; });
+        hi.value = 1;
+        e.status.freeze--;
+        this._log(`❄ ${this._name(e)} 被冰冻，最高骰子冻成 1`, "good");
+      }
+
+      const intent = { damage: 0, shield: 0, heal: 0, statuses: {}, willDieToDot, actions: [] };
+      if (willDieToDot) { this.battle.intent = intent; return; }
+
+      // 干跑：复制骰子可用状态，按与 _enemyPlay 相同的贪心评分挑选动作
+      const sim = e.pendingDice.map((d) => ({ value: d.value, used: false }));
+      const uses = {};
+      e.equipment.forEach((eq) => (uses[eq.instId] = eq.usesPerTurn));
+      let guard = 30;
+      while (guard-- > 0) {
+        const free = sim.filter((d) => !d.used);
+        if (!free.length) break;
+        let best = null;
+        for (const die of free) {
+          for (const eq of e.equipment) {
+            if (uses[eq.instId] <= 0) continue;
+            if (!checkCondition(eq.condition, die.value)) continue;
+            const score = this._scoreAction(e, p, eq, die.value);
+            if (!best || score > best.score) best = { die, eq, score };
+          }
+        }
+        if (!best) break;
+        best.die.used = true;
+        uses[best.eq.instId] -= 1;
+        // 累计该动作对意图的贡献
+        for (const eff of best.eq.effects) {
+          const val = resolveValue(eff.value, best.die.value);
+          switch (eff.type) {
+            case "damage": {
+              const times = eff.times && eff.times > 1 ? eff.times : 1;
+              const base = (e.dmgScale && e.dmgScale > 1) ? Math.ceil(val * e.dmgScale) : val;
+              intent.damage += this._applyVuln(p, this._applyWeak(e, base)) * times;
+              break;
+            }
+            case "shield": intent.shield += val; break;
+            case "heal":   intent.heal += val; break;
+            case "poison": case "burn": case "freeze": case "weak": case "thorns": case "vuln":
+              intent.statuses[eff.type] = (intent.statuses[eff.type] || 0) + val; break;
+            default: break;
+          }
+        }
+        intent.actions.push({ equip: best.eq.name, icon: best.eq.icon });
+      }
+      this.battle.intent = intent;
     }
 
     _roll(count) {
@@ -288,9 +413,11 @@
         unit.hp -= dmg;                                  // 持续伤害无视护盾
         this.emit("damage", { side, amount: dmg, kind: "dot", hp: Math.max(0, unit.hp) });
       }
-      // 衰减：毒 -1，燃烧减半（向下取整）
+      // 衰减：毒 -1，燃烧减半（向下取整），荆棘 -1，易伤 -1
       if (unit.status.poison > 0) unit.status.poison -= 1;
       if (unit.status.burn > 0) unit.status.burn = Math.floor(unit.status.burn / 2);
+      if (unit.status.thorns > 0) unit.status.thorns -= 1;
+      if (unit.status.vuln > 0) unit.status.vuln -= 1;
 
       if (unit.hp <= 0) {
         if (side === "player") this._lose();
@@ -312,6 +439,20 @@
 
       die.used = true;
       eq.usesLeft--;
+
+      // 累计槽：先累加进度，未达阈值则只投入不触发
+      if (eq.condition && eq.condition.type === "sum") {
+        eq.sumProgress = (eq.sumProgress || 0) + die.value;
+        if (eq.sumProgress < eq.condition.value) {
+          this._log(`💣 ${this._name(p)} 向【${eq.name}】蓄能（${eq.sumProgress}/${eq.condition.value}）`, "play");
+          this.emit("equipCharge", { instId: eq.instId, progress: eq.sumProgress, need: eq.condition.value });
+          this.emit("change");
+          if (p.dice.every((d) => d.used)) this.emit("diceExhausted", {});
+          return { ok: true, charged: true };
+        }
+        eq.sumProgress = 0;          // 达阈值：结算后清零，可再次蓄力
+      }
+
       this._resolveEquipment(p, this.battle.enemy, eq, die.value, "player");
       if (this.battle.over) return { ok: true };
       this.emit("change");
@@ -320,20 +461,30 @@
       return { ok: true };
     }
 
-    // 结算一件装备的全部效果
+    // 结算一件装备的全部效果。
+    // sumValue：累计槽触发时传入的累计总和，用于把 dice 占位换成实际累计点数（可选）。
     _resolveEquipment(source, opponent, eq, dieValue, side) {
       const events = [];
+      const oppSide = side === "player" ? "enemy" : "player";
       for (const eff of eq.effects) {
         const tgtSide = effectTarget(eff);
         const target = tgtSide === "self" ? source : opponent;
-        const targetSide = tgtSide === "self" ? side : (side === "player" ? "enemy" : "player");
+        const targetSide = tgtSide === "self" ? side : oppSide;
         let val = resolveValue(eff.value, dieValue);
 
         switch (eff.type) {
           case "damage": {
-            val = this._applyWeak(source, val);
-            const dealt = this._dealDamage(target, val, targetSide);
-            events.push({ type: "damage", amount: dealt });
+            // 敌人伤害按章节强度放大（多章节地牢：越深越痛）
+            if (side === "enemy" && source.dmgScale && source.dmgScale > 1) val = Math.ceil(val * source.dmgScale);
+            // 多段攻击（times）：逐段结算；穿透（pierce）：无视护盾
+            const times = eff.times && eff.times > 1 ? eff.times : 1;
+            for (let t = 0; t < times; t++) {
+              let dmg = this._applyWeak(source, val);
+              dmg = this._applyVuln(target, dmg);
+              const dealt = this._dealDamage(target, dmg, targetSide, source, side, !!eff.pierce);
+              events.push({ type: "damage", amount: dealt, pierce: !!eff.pierce });
+              if (this.battle && this.battle.over) break;
+            }
             break;
           }
           case "shield":
@@ -352,17 +503,50 @@
           case "burn":
           case "freeze":
           case "weak":
+          case "thorns":
+          case "vuln":
             target.status[eff.type] += val;
             events.push({ type: eff.type, amount: val });
             this.emit("status", { side: targetSide, key: eff.type, value: target.status[eff.type] });
             break;
+          case "modify":
+            this._applyModify(source, eff.op);
+            events.push({ type: "modify", op: eff.op });
+            break;
+          case "cleanse": {
+            const removed = this._cleanse(target, val || 1);
+            events.push({ type: "cleanse", amount: removed.length, removed });
+            if (removed.length) {
+              this._log(`✨ ${this._name(target)} 净化了 ${removed.map((k) => STATUSES[k].name).join("、")}`, "good");
+              this.emit("status", { side: targetSide, key: "cleanse", value: removed.length });
+            }
+            break;
+          }
           default:
             break;
         }
+        if (this.battle && this.battle.over) break;
       }
       this._log(`${eq.icon || "▫"} ${this._name(source)} 使用【${eq.name}】(${dieValue})`, side === "player" ? "play" : "discard");
       this.emit("equipUsed", { side, equip: eq.name, icon: eq.icon, dieValue, events });
       if (opponent.hp <= 0) { side === "player" ? this._win() : this._lose(); }
+    }
+
+    // 骰子改造：作用于「来源单位本回合其余未使用的骰子」
+    _applyModify(source, op) {
+      const Data2 = Data;
+      const spec = Data2.MODIFY_OP && Data2.MODIFY_OP[op];
+      const targets = (source.dice || []).filter((d) => !d.used);
+      if (!targets.length) return;
+      targets.forEach((d) => {
+        if (op === "reroll") d.value = this._rollDie();
+        else if (spec && spec.apply) d.value = spec.apply(d.value);
+      });
+      this._log(`🎲 ${this._name(source)} 改造了其余骰子（${(spec && spec.label) || op}）`, source === this.player ? "play" : "discard");
+      this.emit("diceModified", {
+        who: source === this.player ? "player" : "enemy",
+        dice: (source.dice || []).map((d) => ({ id: d.id, value: d.value, used: d.used })),
+      });
     }
 
     // 虚弱：造成的伤害降低约 1/3（向上取整，至少 1）
@@ -370,23 +554,48 @@
       if (source.status && source.status.weak > 0) return Math.max(1, Math.ceil(dmg * 0.66));
       return dmg;
     }
+    // 易伤：受到的攻击伤害提高 50%（向上取整）
+    _applyVuln(target, dmg) {
+      if (target.status && target.status.vuln > 0) return Math.ceil(dmg * 1.5);
+      return dmg;
+    }
+    // 净化：移除目标最多 n 个负面状态，返回被移除的状态键数组
+    _cleanse(target, n) {
+      const order = ["poison", "burn", "freeze", "weak", "vuln"];
+      const removed = [];
+      for (const k of order) {
+        if (removed.length >= n) break;
+        if (target.status[k] > 0) { target.status[k] = 0; removed.push(k); }
+      }
+      return removed;
+    }
 
     // 造成伤害：先扣护盾，再扣生命。玩家受到生命伤害会为大招充能。返回实际造成的总伤害。
-    _dealDamage(target, amount, targetSide) {
+    // source/sourceSide：攻击发起者，用于结算被攻击方的「荆棘」反伤。
+    // pierce：穿透，无视护盾直接扣生命（文档 §22.2.1）。
+    _dealDamage(target, amount, targetSide, source, sourceSide, pierce) {
       let remaining = amount;
       let absorbed = 0;
-      if (target.block > 0) {
+      if (!pierce && target.block > 0) {
         absorbed = Math.min(target.block, remaining);
         target.block -= absorbed;
         remaining -= absorbed;
       }
       target.hp -= remaining;
-      this.emit("damage", { side: targetSide, amount, absorbed, hp: Math.max(0, target.hp) });
+      this.emit("damage", { side: targetSide, amount, absorbed, pierce: !!pierce, hp: Math.max(0, target.hp) });
       // 大招充能：玩家受到的「生命」伤害
       if (targetSide === "player" && remaining > 0) {
         const lim = this.player.limit;
         lim.charge = Math.min(lim.chargeMax, lim.charge + remaining);
         this.emit("limitCharge", { charge: lim.charge, max: lim.chargeMax });
+      }
+      // 荆棘反伤：被攻击方对攻击者反弹荆棘层数（无视护盾，发生在攻击命中后）
+      if (source && sourceSide && target.status && target.status.thorns > 0 && target.hp > 0) {
+        const t = target.status.thorns;
+        source.hp -= t;
+        this._log(`🌵 ${this._name(target)} 的荆棘反弹 ${t} 点伤害给 ${this._name(source)}`, "bad");
+        this.emit("damage", { side: sourceSide, amount: t, absorbed: 0, kind: "thorns", hp: Math.max(0, source.hp) });
+        if (source.hp <= 0) { sourceSide === "player" ? this._lose() : this._win(); }
       }
       return amount;
     }
@@ -423,8 +632,14 @@
       this.emit("change");
 
       if (this._tickStatuses(e, "enemy")) return;       // 毒/燃烧可能直接击杀敌人
-      e.dice = this._roll(e.diceCount);
-      this._applyFreeze(e);
+      // 使用玩家回合时已预投并展示过意图的骰子，保证「预告 = 实际」；缺失时兜底重投
+      if (e.pendingDice && e.pendingDice.length) {
+        e.dice = e.pendingDice;
+        e.pendingDice = null;
+      } else {
+        e.dice = this._roll(e.diceCount);
+        this._applyFreeze(e);
+      }
       this._log(`🎲 ${e.name} 投出 [${e.dice.map((d) => d.value).join(", ")}]`, "discard");
       this.emit("diceRolled", { who: "enemy", dice: e.dice.map((d) => ({ id: d.id, value: d.value })) });
 
@@ -472,9 +687,13 @@
         const val = resolveValue(eff.value, dieValue);
         switch (eff.type) {
           case "damage": {
-            const real = this._applyWeak(e, val);
-            score += real * W.dmg;
-            if (real >= p.hp + p.block) score += 100;     // 可击杀玩家：最高优先
+            const times = eff.times && eff.times > 1 ? eff.times : 1;
+            const dv = (e.dmgScale && e.dmgScale > 1) ? Math.ceil(val * e.dmgScale) : val;
+            let real = this._applyWeak(e, dv);
+            real = this._applyVuln(p, real) * times;     // 计入易伤加成与多段
+            const real2 = eff.pierce ? real : Math.max(0, real - p.block); // 穿透无视护盾
+            score += real * W.dmg + (eff.pierce ? p.block * 0.5 : 0);
+            if (real2 >= p.hp) score += 100;             // 可击杀玩家：最高优先
             break;
           }
           case "shield": score += val * W.def; break;
@@ -483,6 +702,14 @@
           case "burn":   score += val * 1.6 * W.st; break;
           case "freeze": score += 3 * W.st; break;
           case "weak":   score += val * 1.2 * W.st; break;
+          case "thorns": score += val * 1.0 * W.def; break;
+          case "vuln":   score += val * 1.3 * W.st; break;   // 易伤：放大后续伤害
+          case "modify": score += 1.0; break;        // 改造价值较低，避免敌人优先空转
+          case "cleanse": {                            // 净化：仅在自身有负面状态时有价值
+            const neg = e.status.poison + e.status.burn + e.status.freeze + e.status.weak + e.status.vuln;
+            score += neg > 0 ? 3 : 0;
+            break;
+          }
           default: break;
         }
       }
@@ -544,12 +771,19 @@
     // ============================================================
     // 战斗奖励：三选一装备（可跳过）
     // ============================================================
-    _offerReward(source) {
-      const pool = this._shuffle(REWARD_EQUIPMENT).slice(0, CONFIG.REWARD_CHOICES);
-      this.reward = { source, options: pool.map((d) => d.id) };
+    // opts：字符串（来源）或 { source, tag }（tag 用于按构筑方向过滤奖励池）
+    _offerReward(opts) {
+      const o = typeof opts === "string" ? { source: opts } : (opts || {});
+      let candidates = REWARD_EQUIPMENT;
+      if (o.tag) {
+        const filtered = REWARD_EQUIPMENT.filter((e) => (e.tags || []).includes(o.tag));
+        if (filtered.length >= CONFIG.REWARD_CHOICES) candidates = filtered;
+      }
+      const pool = this._pickWeighted(candidates, CONFIG.REWARD_CHOICES);
+      this.reward = { source: o.source || "battle", options: pool.map((d) => d.id) };
       this.phase = "reward";
       this.emit("change");
-      this.emit("rewardOpen", { source, options: pool.map((d) => ({ id: d.id, name: d.name })) });
+      this.emit("rewardOpen", { source: this.reward.source, options: pool.map((d) => ({ id: d.id, name: d.name })) });
     }
 
     // 当前装备占用的总格数
@@ -620,7 +854,7 @@
       this.emit("shopOpen", {});
     }
     _rollShop() {
-      const items = this._shuffle(REWARD_EQUIPMENT).slice(0, CONFIG.SHOP_EQUIP_COUNT)
+      const items = this._pickWeighted(REWARD_EQUIPMENT, CONFIG.SHOP_EQUIP_COUNT)
         .map((d) => ({ id: uid("si"), equipId: d.id, price: d.price, sold: false }));
       this.shop = { items, healCost: CONFIG.SHOP_HEAL_COST, healAmount: CONFIG.SHOP_HEAL_AMOUNT };
     }
@@ -692,6 +926,132 @@
     }
 
     // ============================================================
+    // 事件（文档 §24）：展示文本与若干选项，选项含 cost/reward 指令
+    // ============================================================
+    _openEvent(eventDef) {
+      if (!eventDef) { this._advanceMap(); return; }
+      this.event = { id: eventDef.id, resolved: false };
+      this._eventDef = eventDef;
+      this.phase = "event";
+      this._log(`❔ 事件：${eventDef.name}`, "blind");
+      this.emit("change");
+      this.emit("eventOpen", { id: eventDef.id, name: eventDef.name });
+    }
+
+    // 判断某个选项当前是否可选（金币/生命/可升级装备等前置条件）
+    _eventChoiceAvailable(choice) {
+      const req = choice.requires;
+      if (!req) return true;
+      const p = this.player;
+      if (req.minGold != null && p.gold < req.minGold) return false;
+      if (req.minHp != null && p.hp < req.minHp) return false;
+      if (req.hasUpgradable && !p.equipment.some((e) => e.upgradeId)) return false;
+      return true;
+    }
+
+    // 玩家选择事件选项 → 结算 cost 与 reward
+    chooseEventOption(index) {
+      if (this.phase !== "event" || !this._eventDef) return { ok: false };
+      const choice = this._eventDef.choices[index];
+      if (!choice) return { ok: false };
+      if (!this._eventChoiceAvailable(choice)) return { ok: false, reason: "requires" };
+
+      // 1) 先付出代价
+      const cost = choice.cost || {};
+      if (cost.gold) this.player.gold = Math.max(0, this.player.gold - cost.gold);
+      if (cost.hp) {
+        this.player.hp -= cost.hp;
+        this.emit("damage", { side: "player", amount: cost.hp, absorbed: 0, kind: "event", hp: Math.max(0, this.player.hp) });
+        if (this.player.hp <= 0) { this._log("事件的代价过于沉重……", "bad"); this._lose(); return { ok: true }; }
+      }
+      this._log(`你选择：${choice.text}`, "play");
+
+      // 2) 再结算收益（可能打开奖励界面，由其负责后续推进）
+      const opened = this._applyEventReward(choice.reward || {});
+      this.event = null;
+      this._eventDef = null;
+      if (!opened) this._advanceMap();           // 未打开二级界面时直接推进地图
+      return { ok: true };
+    }
+
+    // 执行一组 reward 指令。返回 true 表示已打开了需要玩家进一步操作的界面（如三选一）。
+    _applyEventReward(reward) {
+      const p = this.player;
+      // 概率分支：按权重随机选一个子 reward 执行
+      if (reward.chance) {
+        let total = 0; reward.chance.forEach((c) => (total += c.weight || 1));
+        let r = this.rnd() * total, pick = reward.chance[0];
+        for (const c of reward.chance) { r -= (c.weight || 1); if (r <= 0) { pick = c; break; } }
+        this._log("命运的骰子滚动……", "blind");
+        return this._applyEventReward(pick.reward || {});
+      }
+      if (reward.hp) {
+        if (reward.hp > 0) {
+          const amt = Math.min(reward.hp, p.maxHp - p.hp);
+          p.hp += amt; this._log(`💚 回复 ${amt} 点生命`, "good");
+          this.emit("heal", { target: "player", amount: amt });
+        } else {
+          p.hp += reward.hp;
+          this.emit("damage", { side: "player", amount: -reward.hp, absorbed: 0, kind: "event", hp: Math.max(0, p.hp) });
+          this._log(`💢 受到 ${-reward.hp} 点伤害`, "bad");
+          if (p.hp <= 0) { this._lose(); return false; }
+        }
+      }
+      if (reward.maxHp) { p.maxHp += reward.maxHp; p.hp += reward.maxHp; this._log(`❤️ 最大生命 +${reward.maxHp}`, "good"); }
+      if (reward.gold) { p.gold += reward.gold; this._log(`💰 获得 $${reward.gold}`, "buy"); }
+      if (reward.fullHeal) {
+        const amt = p.maxHp - p.hp; p.hp = p.maxHp;
+        this._log(`💚 生命完全恢复（+${amt}）`, "good");
+        if (amt > 0) this.emit("heal", { target: "player", amount: amt });
+      }
+      if (reward.upgradeRandom) {
+        const ok = this._upgradeRandomEquipment();
+        if (!ok) { p.gold += 2; this._log("没有可升级的装备，铁匠塞给你 $2 作为补偿", "buy"); }
+      }
+      if (reward.randomEquip) {
+        const def = this._pickWeighted(REWARD_EQUIPMENT, 1)[0];
+        if (def) {
+          if (this.usedCapacity() + (def.size || 1) <= p.capacity) {
+            p.equipment.push(this._makeEquipInstance(def));
+            this._log(`✨ 获得装备【${def.name}】`, "good");
+          } else {
+            // 容量不足：转为一次三选一奖励，交由替换/丢弃流程处理
+            this._offerReward({ source: "event" });
+            return true;
+          }
+        }
+      }
+      if (reward.rewardChoice) {
+        this._offerReward(reward.rewardChoice);     // 打开三选一，领取后自然推进地图
+        return true;
+      }
+      this.emit("change");
+      return false;
+    }
+
+    // 随机升级一件「拥有升级版本」的装备，成功返回 true
+    _upgradeRandomEquipment() {
+      const ups = this.player.equipment.filter((e) => e.upgradeId);
+      if (!ups.length) return false;
+      const eq = this._pick(ups);
+      const def = findEquipment(eq.upgradeId);
+      if (!def) return false;
+      const idx = this.player.equipment.findIndex((e) => e.instId === eq.instId);
+      this.player.equipment[idx] = this._makeEquipInstance(def);
+      this._log(`⚒️ 装备升级：【${eq.name}】→【${def.name}】`, "good");
+      this.emit("change");
+      return true;
+    }
+
+    leaveEvent() {
+      if (this.phase !== "event") return { ok: false };
+      this.event = null;
+      this._eventDef = null;
+      this._advanceMap();
+      return { ok: true };
+    }
+
+    // ============================================================
     // 只读查询
     // ============================================================
     _name(unit) { return unit === this.player ? "你" : (unit.name || "敌人"); }
@@ -709,14 +1069,20 @@
         usesPerTurn: e.usesPerTurn, usesLeft: e.usesLeft,
         condition: e.condition, effects: e.effects, tags: e.tags || [],
         upgradeId: e.upgradeId || null, price: e.price || 0,
+        sumProgress: e.sumProgress || 0,
         desc: Data.describeEquipment(e),
       };
     }
 
     getState() {
       const p = this.player;
+      const ch = this._chapter();
       const base = {
         phase: this.phase,
+        chapter: this.chapter || 1,
+        maxChapter: CHAPTERS.length,
+        chapterName: ch.name,
+        chapterIcon: ch.icon,
         player: p ? {
           name: p.name, icon: p.icon, hp: p.hp, maxHp: p.maxHp,
           block: p.block || 0, status: Object.assign({}, p.status || {}),
@@ -751,6 +1117,9 @@
         base.battle = {
           turn: this.battle.turn, turnNo: this.battle.turnNo, over: this.battle.over,
           enemy: this._publicUnit(this.battle.enemy),
+          // 敌人意图仅在玩家回合预告（敌人回合时意图正在执行）
+          intent: (this.battle.turn === "player" && !this.battle.over && this.battle.intent)
+            ? this.battle.intent : null,
         };
       }
       if (this.phase === "reward" && this.reward) {
@@ -769,6 +1138,16 @@
           })),
         };
       }
+      if (this.phase === "event" && this._eventDef) {
+        const def = this._eventDef;
+        base.event = {
+          id: def.id, name: def.name, icon: def.icon, desc: def.desc,
+          choices: def.choices.map((c, i) => ({
+            index: i, text: c.text,
+            available: this._eventChoiceAvailable(c),
+          })),
+        };
+      }
       return base;
     }
 
@@ -782,6 +1161,7 @@
         const data = {
           v: 1,
           phase: this.phase,
+          chapter: this.chapter || 1,
           player: {
             maxHp: p.maxHp, hp: p.hp, diceCount: p.diceCount, capacity: p.capacity,
             level: p.level, xp: p.xp, gold: p.gold,
@@ -815,8 +1195,10 @@
           equipment: (pd.equipment || []).map((id) => this._makeEquipInstance(findEquipment(id))).filter(Boolean),
           limit: { name: c.limitBreak.name, desc: c.limitBreak.desc, charge: (pd.limit && pd.limit.charge) || 0, chargeMax: c.limitBreak.chargeMax },
         };
+        this.chapter = d.chapter || 1;
         this.map = d.map ? { rows: d.map.rows, rowIndex: d.map.rowIndex, path: d.map.path || [] } : null;
         this.battle = null; this.shop = null; this.reward = null;
+        this.event = null; this._eventDef = null;
         // 战斗/奖励阶段读档统一回到地图，避免半场态缺失
         this.phase = "map";
         this._log("📂 已读取存档，继续探索", "good");
