@@ -240,7 +240,14 @@ function makeRandomCard(rank) {
 }
 function nextCardId() { return ++uidCounter; }
 
-window.Cards = {
+// ---- 通用导出：同时兼容浏览器(window) 与 Node 命令行(module.exports) ----
+// cards.js 为纯逻辑/数据，不含任何 DOM 依赖，可在命令行直接 require。
+(function (exported) {
+  if (typeof module !== "undefined" && module.exports) module.exports = exported;
+  const g = (typeof globalThis !== "undefined") ? globalThis
+          : (typeof window !== "undefined") ? window : null;
+  if (g) g.Cards = exported;
+})({
   SUITS,
   RANKS,
   HAND_TYPES,
@@ -253,4 +260,4 @@ window.Cards = {
   evaluateHand,
   makeRandomCard,
   nextCardId,
-};
+});

@@ -5,7 +5,7 @@
  * 策略：静态资源 cache-first，其它 network-first 回退缓存。
  * 升级 CACHE_VERSION 即可强制刷新。
  * ============================================================ */
-const CACHE_VERSION = "funnybuddy-hub-v1";
+const CACHE_VERSION = "funnybuddy-hub-v2";
 const PRECACHE_URLS = [
   "./",
   "./index.html",

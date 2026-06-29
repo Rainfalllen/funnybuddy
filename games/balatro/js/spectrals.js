@@ -113,4 +113,10 @@ function getSpectralById(id) {
   return SPECTRAL_POOL.find((s) => s.id === id);
 }
 
-window.Spectrals = { SPECTRAL_POOL, getSpectralById };
+// ---- 通用导出：同时兼容浏览器(window) 与 Node 命令行(module.exports) ----
+(function (exported) {
+  if (typeof module !== "undefined" && module.exports) module.exports = exported;
+  const g = (typeof globalThis !== "undefined") ? globalThis
+          : (typeof window !== "undefined") ? window : null;
+  if (g) g.Spectrals = exported;
+})({ SPECTRAL_POOL, getSpectralById });

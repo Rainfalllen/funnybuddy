@@ -1,0 +1,12 @@
+{
+  "name": "funnybuddy",
+  "version": "1.0.0",
+  "description": "纯前端小游戏合集；每个游戏的逻辑层与表现层分离，逻辑可在命令行(Node)独立运行。",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "balatro:cli": "node games/balatro/cli.js",
+    "balatro:cli:quiet": "node games/balatro/cli.js --quiet"
+  },
+  "license": "MIT"
+}

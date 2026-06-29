@@ -5,11 +5,26 @@
  * 通过方法接收外界（控制层）的操作指令。
  * ============================================================ */
 (function () {
-  const { HAND_TYPES, ENHANCEMENTS, EDITIONS, getHandStats, buildDeck, shuffle, evaluateHand, makeRandomCard, nextCardId } = window.Cards;
-  const { JOKER_POOL, JOKER_FX } = window.Jokers;
-  const { PLANET_POOL } = window.Planets;
-  const { TAROT_POOL } = window.Tarots || { TAROT_POOL: [] };
-  const { SPECTRAL_POOL } = window.Spectrals || { SPECTRAL_POOL: [] };
+  // ---- 依赖解析：浏览器从全局(window) 取，Node 命令行用 require 取 ----
+  // 逻辑层完全不依赖 DOM，因此既能在浏览器随 <script> 加载，也能在命令行运行。
+  const __root = (typeof globalThis !== "undefined") ? globalThis
+               : (typeof window !== "undefined") ? window : {};
+  const __req = (typeof require !== "undefined") ? require : null;
+  const Cards = __root.Cards || (__req && __req("./cards.js"));
+  const Jokers = __root.Jokers || (__req && __req("./jokers.js"));
+  const Planets = __root.Planets || (__req && __req("./planets.js"));
+  const Tarots = __root.Tarots || (__req && __req("./tarots.js")) || { TAROT_POOL: [] };
+  const Spectrals = __root.Spectrals || (__req && __req("./spectrals.js")) || { SPECTRAL_POOL: [] };
+
+  const { HAND_TYPES, ENHANCEMENTS, EDITIONS, getHandStats, buildDeck, shuffle, evaluateHand, makeRandomCard, nextCardId } = Cards;
+  const { JOKER_POOL, JOKER_FX } = Jokers;
+  const { PLANET_POOL } = Planets;
+  const { TAROT_POOL } = Tarots;
+  const { SPECTRAL_POOL } = Spectrals;
+
+  // ---- 存储抽象：浏览器用 localStorage，命令行无持久化（安全降级，不报错） ----
+  // 仅在浏览器(window 存在)时启用；Node 命令行下为 null，存档相关操作自动跳过。
+  const __storage = (typeof window !== "undefined" && window.localStorage) ? window.localStorage : null;
 
   // ---------- 规则常量 ----------
   const CONFIG = {
@@ -117,7 +132,7 @@
           shopSpectrals: this._serializeShop(s.shopSpectrals, "spectral"),
           phase: this._phase || "play",
         };
-        localStorage.setItem("funnybuddy_save", JSON.stringify(data));
+        if (__storage) __storage.setItem("funnybuddy_save", JSON.stringify(data));
       } catch (e) { /* 存储失败静默 */ }
     }
     _serializeShop(arr, type) {
@@ -130,15 +145,15 @@
       });
     }
     hasSave() {
-      try { return !!localStorage.getItem("funnybuddy_save"); } catch (e) { return false; }
+      try { return !!(__storage && __storage.getItem("funnybuddy_save")); } catch (e) { return false; }
     }
     clearSave() {
-      try { localStorage.removeItem("funnybuddy_save"); } catch (e) { /* ignore */ }
+      try { if (__storage) __storage.removeItem("funnybuddy_save"); } catch (e) { /* ignore */ }
     }
     // 读档：成功返回 true
     load() {
       try {
-        const raw = localStorage.getItem("funnybuddy_save");
+        const raw = __storage && __storage.getItem("funnybuddy_save");
         if (!raw) return false;
         const d = JSON.parse(raw);
         if (!d || !d.deck) return false;
@@ -946,5 +961,7 @@
     }
   }
 
-  window.GameCore = GameCore;
+  // ---- 通用导出：浏览器挂到 window.GameCore，Node 命令行可 require ----
+  if (typeof module !== "undefined" && module.exports) module.exports = GameCore;
+  if (__root) __root.GameCore = GameCore;
 })();

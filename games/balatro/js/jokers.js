@@ -415,4 +415,11 @@ function getJokerById(id) {
   return JOKER_POOL.find((j) => j.id === id);
 }
 
-window.Jokers = { JOKER_POOL, JOKER_FX, getJokerById };
+// ---- 通用导出：同时兼容浏览器(window) 与 Node 命令行(module.exports) ----
+// 逻辑层数据不依赖 DOM，可在命令行环境直接 require。
+(function (exported) {
+  if (typeof module !== "undefined" && module.exports) module.exports = exported;
+  const g = (typeof globalThis !== "undefined") ? globalThis
+          : (typeof window !== "undefined") ? window : null;
+  if (g) g.Jokers = exported;
+})({ JOKER_POOL, JOKER_FX, getJokerById });
