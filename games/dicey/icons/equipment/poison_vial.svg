@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="pvLiq" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#aef07a"/><stop offset="1" stop-color="#4f9a2a"/>
+    </linearGradient>
+  </defs>
+  <!-- 瓶身玻璃 -->
+  <path d="M26 14h12v10l8 18a8 8 0 0 1-7 12H25a8 8 0 0 1-7-12l8-18z" fill="#cfe8e0" fill-opacity=".35" stroke="#7a8e88" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 毒液 -->
+  <path d="M22 36l-3 6a8 8 0 0 0 7 12h14a8 8 0 0 0 7-12l-3-6z" fill="url(#pvLiq)" stroke="#34561c" stroke-width="1.5"/>
+  <!-- 气泡 -->
+  <circle cx="28" cy="46" r="2.5" fill="#dcf7c0" fill-opacity=".8"/>
+  <circle cx="36" cy="50" r="1.8" fill="#dcf7c0" fill-opacity=".7"/>
+  <circle cx="33" cy="42" r="1.5" fill="#dcf7c0" fill-opacity=".6"/>
+  <!-- 瓶塞 -->
+  <rect x="24" y="8" width="16" height="8" rx="2" fill="#7a5230" stroke="#4a3018" stroke-width="1.5"/>
+  <!-- 高光 -->
+  <path d="M30 20v6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-opacity=".6"/>
+</svg>

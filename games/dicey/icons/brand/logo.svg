@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 200" width="480" height="200">
+  <defs>
+    <radialGradient id="lgBg" cx="50%" cy="40%" r="75%">
+      <stop offset="0" stop-color="#3a2412"/><stop offset="1" stop-color="#0b0806"/>
+    </radialGradient>
+    <radialGradient id="lgGlow" cx="50%" cy="46%" r="50%">
+      <stop offset="0" stop-color="#ff9d3c" stop-opacity=".5"/><stop offset="1" stop-color="#ff6b2c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lgDie" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbf7ea"/><stop offset="1" stop-color="#ddd2b4"/>
+    </linearGradient>
+    <linearGradient id="lgGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe6a0"/><stop offset=".5" stop-color="#f0c46a"/><stop offset="1" stop-color="#c9912f"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="200" rx="20" fill="url(#lgBg)"/>
+  <!-- 砖缝 -->
+  <g stroke="#00000055" stroke-width="2">
+    <line x1="0" y1="60" x2="480" y2="60"/><line x1="0" y1="140" x2="480" y2="140"/>
+    <line x1="120" y1="0" x2="120" y2="60"/><line x1="320" y1="60" x2="320" y2="140"/>
+    <line x1="200" y1="140" x2="200" y2="200"/>
+  </g>
+  <circle cx="240" cy="92" r="150" fill="url(#lgGlow)"/>
+  <!-- 左侧大骰子 -->
+  <g transform="rotate(-12 90 100)">
+    <rect x="48" y="58" width="84" height="84" rx="18" fill="url(#lgDie)" stroke="#9c8a64" stroke-width="3"/>
+    <g fill="#241a10">
+      <circle cx="70" cy="80" r="8"/><circle cx="110" cy="80" r="8"/>
+      <circle cx="90" cy="100" r="8"/>
+      <circle cx="70" cy="120" r="8"/><circle cx="110" cy="120" r="8"/>
+    </g>
+  </g>
+  <!-- 标题文字 -->
+  <text x="270" y="92" text-anchor="middle" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-weight="900" font-size="52" fill="url(#lgGold)" stroke="#5a3a0c" stroke-width="1.5" style="paint-order:stroke">骰子</text>
+  <text x="270" y="150" text-anchor="middle" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-weight="900" font-size="52" fill="url(#lgGold)" stroke="#5a3a0c" stroke-width="1.5" style="paint-order:stroke">地下城</text>
+  <!-- 装饰小骰子 -->
+  <g transform="rotate(15 410 56)">
+    <rect x="392" y="38" width="36" height="36" rx="8" fill="url(#lgDie)" stroke="#9c8a64" stroke-width="2"/>
+    <circle cx="410" cy="56" r="4.5" fill="#241a10"/>
+  </g>
+  <g transform="rotate(-10 420 150)">
+    <rect x="404" y="134" width="32" height="32" rx="7" fill="url(#lgDie)" stroke="#9c8a64" stroke-width="2"/>
+    <circle cx="412" cy="142" r="3.5" fill="#241a10"/><circle cx="428" cy="158" r="3.5" fill="#241a10"/>
+  </g>
+</svg>

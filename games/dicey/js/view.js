@@ -12,6 +12,109 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const sfx = (name, ...a) => { try { if (window.SFX && window.SFX[name]) window.SFX[name](...a); } catch (e) { /* 忽略 */ } };
 
+  // ============================================================
+  // 图标素材：data.js 的 id → SVG 文件路径映射
+  //   这些是 icons/ 下统一风格的矢量素材，用于替换 emoji 占位。
+  //   未在表中的 id（敌人内联技能、事件、章节等）继续走 emoji 兜底，
+  //   因此本表只需登记「已制作素材」的条目，零破坏地渐进替换。
+  // ============================================================
+  const ICON_SVG = {
+    // 敌人（ENEMY_POOL.id）
+    "slime": "icons/enemies/slime.svg",
+    "bat": "icons/enemies/bat.svg",
+    "spider": "icons/enemies/spider.svg",
+    "goblin": "icons/enemies/goblin.svg",
+    "skeleton": "icons/enemies/skeleton.svg",
+    "imp": "icons/enemies/imp.svg",
+    "frost_wisp": "icons/enemies/frost_wisp.svg",
+    "ogre": "icons/enemies/ogre.svg",
+    "cursed_knight": "icons/enemies/cursed_knight.svg",
+    "dungeon_lord": "icons/enemies/dungeon_lord.svg",
+    // 装备（EQUIPMENT_POOL.id，含升级版共用基础图标）
+    "shortsword": "icons/equipment/shortsword.svg",
+    "shortsword_plus": "icons/equipment/shortsword_plus.svg",
+    "greatsword": "icons/equipment/greatsword.svg",
+    "warhammer": "icons/equipment/warhammer.svg",
+    "mace": "icons/equipment/warhammer.svg",
+    "dagger": "icons/equipment/dagger.svg",
+    "dagger_plus": "icons/equipment/dagger_plus.svg",
+    "buckler": "icons/equipment/buckler.svg",
+    "buckler_plus": "icons/equipment/buckler_plus.svg",
+    "spiked_shield": "icons/equipment/buckler.svg",
+    "bandage": "icons/equipment/bandage.svg",
+    "poison_vial": "icons/equipment/poison_vial.svg",
+    "poison_vial_plus": "icons/equipment/poison_vial_plus.svg",
+    "fire_wand": "icons/equipment/fire_wand.svg",
+    "frost_staff": "icons/equipment/frost_staff.svg",
+    "lightning_rod": "icons/equipment/lightning_rod.svg",
+    "dice_cup": "icons/equipment/dice_cup.svg",
+    "charge_cannon": "icons/equipment/charge_cannon.svg",
+    // 状态（STATUSES.key）
+    "poison": "icons/status/poison.svg",
+    "burn": "icons/status/burn.svg",
+    "freeze": "icons/status/freeze.svg",
+    "weak": "icons/status/weak.svg",
+    "thorns": "icons/status/thorns.svg",
+    "vuln": "icons/status/vuln.svg",
+    "shield": "icons/status/shield.svg",
+    // 敌人内联技能（去重，部分语义相近的技能共用一张）
+    "claw": "icons/skills/claw.svg",
+    "bite": "icons/skills/fang.svg",
+    "fang": "icons/skills/fang.svg",
+    "venom": "icons/skills/venom.svg",
+    "venomspit": "icons/skills/venom.svg",
+    "stab": "icons/skills/stab.svg",
+    "slash": "icons/skills/slash.svg",
+    "darkblade": "icons/skills/slash.svg",
+    "boneguard": "icons/skills/guard.svg",
+    "guard": "icons/skills/guard.svg",
+    "fireball": "icons/skills/fireball.svg",
+    "chill": "icons/skills/chill.svg",
+    "club": "icons/skills/club.svg",
+    "smash": "icons/skills/smash.svg",
+    "quake": "icons/skills/quake.svg",
+    "curse": "icons/skills/curse.svg",
+    "doomstrike": "icons/skills/doomstrike.svg",
+    "mend": "icons/skills/mend.svg",
+    // 地图节点类型（node.type，键加 node: 前缀避免与敌人/状态 id 撞名）
+    "node:battle": "icons/nodes/battle.svg",
+    "node:elite": "icons/nodes/elite.svg",
+    "node:treasure": "icons/nodes/treasure.svg",
+    "node:shop": "icons/nodes/shop.svg",
+    "node:heal": "icons/nodes/heal.svg",
+    "node:event": "icons/nodes/event.svg",
+    "node:boss": "icons/nodes/boss.svg",
+    // 章节（按序号 ch: 前缀）
+    "ch:1": "icons/chapters/ch1.svg",
+    "ch:2": "icons/chapters/ch2.svg",
+    "ch:3": "icons/chapters/ch3.svg",
+    // 事件（EVENTS.id）
+    "dice_altar": "icons/events/dice_altar.svg",
+    "broken_forge": "icons/events/broken_forge.svg",
+    "wandering_merchant": "icons/events/wandering_merchant.svg",
+    "twin_shrine": "icons/events/twin_shrine.svg",
+  };
+
+  // 根据 id 取 SVG 路径（无则返回 null）
+  function iconSvgPath(id) {
+    return (id && ICON_SVG[id]) || null;
+  }
+
+  // 渲染一个图标为 HTML 字符串：
+  //   有对应 SVG 素材 → <img class="ico ...">；否则回退为 emoji 文本（外裹 span 便于统一定位）。
+  //   id        data.js 中的标识（敌人/装备/状态）
+  //   emoji     兜底 emoji（data.js 里原 icon 字段）
+  //   extraCls  附加到外层元素的 class（用于尺寸场景化）
+  //   alt       无障碍替代文本
+  function iconHtml(id, emoji, extraCls, alt) {
+    const path = iconSvgPath(id);
+    const cls = "ico" + (extraCls ? " " + extraCls : "");
+    if (path) {
+      return `<img class="${cls}" src="${path}" alt="${alt || ""}" draggable="false">`;
+    }
+    return `<span class="${cls} ico-emoji">${emoji != null ? emoji : ""}</span>`;
+  }
+
   // 骰子点数 → 点阵布局（用 CSS grid 摆放圆点）
   const PIP_LAYOUT = {
     1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
@@ -179,7 +282,7 @@
         const chip = document.createElement("span");
         chip.className = "status-chip";
         chip.style.setProperty("--c", def.color);
-        chip.textContent = `${def.icon}${v}`;
+        chip.innerHTML = `${iconHtml(k, def.icon, "ico-status", def.name)}<span class="status-n">${v}</span>`;
         chip.setAttribute("data-tip", `${def.name}：${def.desc}（当前 ${v} 层）`);
         this._bindTip(chip);
         node.appendChild(chip);
@@ -197,7 +300,7 @@
       if (this.el.chapterBanner) {
         this.el.chapterBanner.innerHTML =
           `<span class="chapter-no">第 ${s.chapter} / ${s.maxChapter} 章</span>` +
-          `<span class="chapter-name">${s.chapterIcon || ""} ${s.chapterName || ""}</span>`;
+          `<span class="chapter-name">${iconHtml("ch:" + s.chapter, s.chapterIcon, "ico-chapter", s.chapterName)} ${s.chapterName || ""}</span>`;
       }
       this.el.mapRowInfo.textContent = `第 ${m.rowIndex + 1} / ${m.totalRows} 层`;
       const track = this.el.mapTrack;
@@ -241,12 +344,12 @@
           card.style.animationDelay = i * 0.05 + "s";
           // 敌人详情只在当前层展示，聚焦当下决策、为前方保留未知感
           const enemy = (isCurrent && node.enemy)
-            ? `<div class="node-enemy">${node.enemy.icon} ${node.enemy.name}<br><span class="node-hp">HP ${node.enemy.hp}</span></div>`
+            ? `<div class="node-enemy">${iconHtml(node.enemy.id, node.enemy.icon, "ico-mini", node.enemy.name)} ${node.enemy.name}<br><span class="node-hp">HP ${node.enemy.hp}</span></div>`
             : "";
           const mark = node.chosen ? '<div class="node-mark">✓</div>' : "";
           card.innerHTML = `
             ${mark}
-            <div class="node-icon">${node.meta.icon}</div>
+            <div class="node-icon">${iconHtml("node:" + node.type, node.meta.icon, "ico-node", node.meta.label)}</div>
             <div class="node-label">${node.meta.label}</div>
             ${enemy}
           `;
@@ -275,7 +378,7 @@
       const e = b.enemy;
       // 敌人面板
       this.el.eName.textContent = e.name;
-      this.el.eIcon.textContent = e.icon;
+      this.el.eIcon.innerHTML = iconHtml(e.id, e.icon, "ico-enemy", e.name);
       this._setBar(this.el.eHpFill, e.hp, e.maxHp);
       this.el.eHpText.textContent = `${Math.max(0, e.hp)}/${e.maxHp}`;
       this._renderBlock(this.el.eBlock, e.block);
@@ -314,7 +417,7 @@
       if (intent.heal > 0) chips.push(`<span class="intent-chip intent-heal">💚 ${intent.heal}</span>`);
       Object.keys(intent.statuses || {}).forEach((k) => {
         const def = DiceData.STATUSES[k];
-        if (def) chips.push(`<span class="intent-chip intent-st" style="--c:${def.color}">${def.icon}${intent.statuses[k]}</span>`);
+        if (def) chips.push(`<span class="intent-chip intent-st" style="--c:${def.color}">${iconHtml(k, def.icon, "ico-status", def.name)}<span class="status-n">${intent.statuses[k]}</span></span>`);
       });
       node.innerHTML = chips.length
         ? `<span class="intent-label">意图</span>${chips.join("")}`
@@ -347,7 +450,7 @@
         }
         card.innerHTML = `
           <div class="equip-cond" title="骰子条件">${cond}</div>
-          <div class="equip-icon">${eq.icon || "▫"}</div>
+          <div class="equip-icon">${iconHtml(eq.id, eq.icon || "▫", "ico-equip", eq.name)}</div>
           <div class="equip-name">${eq.name}${uses}</div>
           ${charge}
         `;
@@ -411,7 +514,7 @@
         const card = document.createElement("div");
         card.className = "reward-card rarity-" + (eq.tags && eq.tags[0] || "common");
         card.innerHTML = `
-          <div class="reward-icon">${eq.icon || "▫"}</div>
+          <div class="reward-icon">${iconHtml(eq.id, eq.icon || "▫", "ico-reward", eq.name)}</div>
           <div class="reward-name">${eq.name}</div>
           <div class="reward-cond">${DiceData.describeCondition(eq.condition)} · ${eq.size}格</div>
           <div class="reward-desc">${eq.desc}</div>
@@ -435,7 +538,7 @@
       p.equipment.forEach((eq) => {
         const b = document.createElement("button");
         b.className = "equip equip-mini";
-        b.innerHTML = `<div class="equip-icon">${eq.icon || "▫"}</div><div class="equip-name">${eq.name}</div>`;
+        b.innerHTML = `<div class="equip-icon">${iconHtml(eq.id, eq.icon || "▫", "ico-equip", eq.name)}</div><div class="equip-name">${eq.name}</div>`;
         b.onclick = () => { sfx("click"); this.handlers.onReplaceReward(this.replaceMode.id, eq.instId); };
         row.appendChild(b);
       });
@@ -460,7 +563,7 @@
     _renderEvent(s) {
       const ev = s.event;
       if (!ev) return;
-      if (this.el.eventIcon) this.el.eventIcon.textContent = ev.icon || "❔";
+      if (this.el.eventIcon) this.el.eventIcon.innerHTML = iconHtml(ev.id, ev.icon || "❔", "ico-event", ev.name);
       if (this.el.eventName) this.el.eventName.textContent = ev.name || "事件";
       if (this.el.eventDesc) this.el.eventDesc.textContent = ev.desc || "";
       const wrap = this.el.eventChoices;
@@ -499,7 +602,7 @@
         card.className = "shop-card" + (it.sold ? " sold" : "");
         const can = !it.sold && p.gold >= it.price && (p.usedCapacity + eq.size) <= p.capacity;
         card.innerHTML = `
-          <div class="reward-icon">${eq.icon || "▫"}</div>
+          <div class="reward-icon">${iconHtml(eq.id, eq.icon || "▫", "ico-reward", eq.name)}</div>
           <div class="reward-name">${eq.name}</div>
           <div class="reward-cond">${DiceData.describeCondition(eq.condition)} · ${eq.size}格</div>
           <div class="reward-desc">${eq.desc}</div>
@@ -519,7 +622,7 @@
           ? `<button class="btn btn-up" ${p.gold >= shop.upgradeCost ? "" : "disabled"}>⚒️升级 $${shop.upgradeCost}</button>`
           : `<span class="no-up">不可升级</span>`;
         card.innerHTML = `
-          <div class="owned-head"><span class="equip-icon">${eq.icon || "▫"}</span><span>${eq.name}</span><span class="owned-size">${eq.size}格</span></div>
+          <div class="owned-head"><span class="equip-icon">${iconHtml(eq.id, eq.icon || "▫", "ico-equip", eq.name)}</span><span>${eq.name}</span><span class="owned-size">${eq.size}格</span></div>
           <div class="reward-desc">${eq.desc}</div>
           <div class="owned-actions">${upBtn}<button class="btn btn-sell">💰卖出</button></div>
         `;

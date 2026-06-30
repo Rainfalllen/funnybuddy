@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="clw" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3ece0"/><stop offset="1" stop-color="#b8a98c"/>
+    </linearGradient>
+  </defs>
+  <!-- 三道爪痕 -->
+  <g fill="url(#clw)" stroke="#3a2c18" stroke-width="1.6" stroke-linejoin="round">
+    <path d="M16 10c-3 14-2 30 6 44 1-15-1-30-6-44z"/>
+    <path d="M32 8c-2 15-1 31 5 46 2-16 0-31-5-46z"/>
+    <path d="M48 10c-3 14-3 29 4 43 1-15-1-29-4-43z"/>
+  </g>
+</svg>

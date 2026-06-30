@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="sspBlade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eaf6ff"/><stop offset=".5" stop-color="#a9d4ee"/><stop offset="1" stop-color="#5e93b8"/>
+    </linearGradient>
+    <radialGradient id="sspGem" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#bfeaff"/><stop offset="1" stop-color="#2c7fb8"/>
+    </radialGradient>
+  </defs>
+  <g transform="rotate(45 32 32)">
+    <!-- 附魔辉光 -->
+    <path d="M32 4l7 5v30l-7 7-7-7V9z" fill="#7fd0ff" fill-opacity=".35"/>
+    <!-- 剑身 -->
+    <path d="M32 6l5 4v28l-5 5-5-5V10z" fill="url(#sspBlade)" stroke="#3a6e8c" stroke-width="1.5" stroke-linejoin="round"/>
+    <line x1="32" y1="10" x2="32" y2="40" stroke="#cdeeff" stroke-width="1.2"/>
+    <!-- 附魔符纹 -->
+    <path d="M30 16l4 0M30 22l4 0M30 28l4 0" stroke="#eaf6ff" stroke-width="1" stroke-opacity=".7"/>
+    <!-- 护手 -->
+    <rect x="20" y="43" width="24" height="5" rx="2" fill="#e0b84a" stroke="#7a5a18" stroke-width="1.5"/>
+    <!-- 宝石 -->
+    <circle cx="32" cy="45.5" r="3" fill="url(#sspGem)" stroke="#1f5d86" stroke-width="1"/>
+    <!-- 握柄 -->
+    <rect x="29" y="48" width="6" height="9" rx="2" fill="#5a3a22" stroke="#2c1c10" stroke-width="1.5"/>
+    <!-- 配重 -->
+    <circle cx="32" cy="58" r="3.5" fill="#e0b84a" stroke="#7a5a18" stroke-width="1.5"/>
+  </g>
+</svg>

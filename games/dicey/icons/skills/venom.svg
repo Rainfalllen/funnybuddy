@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="vnm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#aef07a"/><stop offset="1" stop-color="#4f9a2a"/>
+    </linearGradient>
+  </defs>
+  <!-- 大毒滴 -->
+  <path d="M32 10c8 12 13 20 13 28a13 13 0 0 1-26 0c0-8 5-16 13-28z" fill="url(#vnm)" stroke="#34561c" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 高光 -->
+  <ellipse cx="27" cy="34" rx="3.5" ry="6" fill="#e6ffcf" fill-opacity=".7"/>
+  <!-- 毒气泡 -->
+  <circle cx="36" cy="44" r="2.5" fill="#dcf7c0" fill-opacity=".8"/>
+  <circle cx="30" cy="48" r="1.8" fill="#dcf7c0" fill-opacity=".7"/>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ndTr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a8804c"/><stop offset="1" stop-color="#5e421f"/>
+    </linearGradient>
+  </defs>
+  <!-- 箱体 -->
+  <rect x="12" y="30" width="40" height="22" rx="3" fill="url(#ndTr)" stroke="#3a2810" stroke-width="2"/>
+  <!-- 箱盖 -->
+  <path d="M12 30c0-8 8-12 20-12s20 4 20 12z" fill="#8a6238" stroke="#3a2810" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 金边 -->
+  <rect x="12" y="36" width="40" height="4" fill="#e0b84a"/>
+  <!-- 锁 -->
+  <rect x="28" y="34" width="8" height="9" rx="2" fill="#e0b84a" stroke="#7a5a18" stroke-width="1.4"/>
+  <circle cx="32" cy="38" r="1.6" fill="#3a2810"/>
+  <!-- 溢光 -->
+  <g fill="#fff2b0"><circle cx="20" cy="26" r="2"/><circle cx="44" cy="25" r="1.6"/></g>
+</svg>

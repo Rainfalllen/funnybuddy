@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>骰子地下城 · 素材集预览</title>
+<style>
+  :root{--stone-0:#0b0907;--stone-2:#221a12;--torch:#ff9d3c;--gold:#f0c46a;--bone:#e9e0c8;--bone-2:#cdbf9c;--bone-edge:#9c8a64;--text:#f2e9d6;--muted:#ab9d83;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei","Segoe UI",sans-serif;background:radial-gradient(120% 100% at 50% 30%,#2a1d12,#0b0806 70%);color:var(--text);padding:32px 28px 60px;min-height:100vh}
+  h1{color:var(--gold);font-size:30px;text-align:center;letter-spacing:2px;text-shadow:0 0 22px #ff8a3c66,0 2px 2px #000;margin-bottom:6px}
+  .sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:34px}
+  h2{color:var(--torch);font-size:19px;margin:36px 0 16px;padding-bottom:8px;border-bottom:1px solid #ffcf8a22;text-shadow:0 1px 2px #000}
+  .grid{display:flex;flex-wrap:wrap;gap:16px}
+  .cell{background:linear-gradient(180deg,#2c2117,#1a130d);border:1px solid #ffcf8a1f;border-radius:12px;padding:14px 12px 10px;text-align:center;width:120px;box-shadow:inset 0 1px 0 #ffffff10,0 4px 10px #0007}
+  .cell.bone{background:linear-gradient(180deg,var(--bone),var(--bone-2));border-color:var(--bone-edge)}
+  .cell.bone .nm{color:#2a2018}
+  .cell.bone .id{color:#6a5a3a}
+  .cell img{width:64px;height:64px;display:block;margin:0 auto 8px;filter:drop-shadow(0 3px 5px #0008)}
+  .cell.big img{width:84px;height:84px}
+  .nm{font-size:14px;font-weight:800;color:var(--text)}
+  .id{font-size:11px;color:var(--muted);margin-top:2px;font-family:monospace}
+  .logo-wrap{text-align:center;margin:10px 0 4px}
+  .logo-wrap img{width:420px;max-width:90%;filter:drop-shadow(0 6px 16px #0009)}
+  .dice-row .cell img{width:54px;height:54px}
+</style>
+</head>
+<body>
+  <h1>骰子地下城 · 素材集</h1>
+  <div class="sub">暗黑奇幻线性风 · 矢量 SVG · 36 件</div>
+
+  <div class="logo-wrap"><img src="brand/logo.svg" alt="logo"></div>
+
+  <h2>敌人怪物 · 10</h2>
+  <div class="grid" id="enemies"></div>
+
+  <h2>装备道具 · 12（骨白卡面实测）</h2>
+  <div class="grid" id="equipment"></div>
+
+  <h2>状态效果 · 7</h2>
+  <div class="grid" id="status"></div>
+
+  <h2>骰子点面 · 6</h2>
+  <div class="grid dice-row" id="dice"></div>
+
+<script>
+  const E=[["slime","史莱姆"],["bat","暗夜蝙蝠"],["spider","毒蛛"],["goblin","哥布林"],["skeleton","骷髅战士"],["imp","炎魔小鬼"],["frost_wisp","霜灵"],["ogre","食人魔·精英"],["cursed_knight","诅咒骑士·精英"],["dungeon_lord","地牢领主·BOSS"]];
+  const Q=[["shortsword","短剑"],["greatsword","巨剑"],["warhammer","战锤"],["dagger","匕首"],["buckler","圆盾"],["bandage","绷带"],["poison_vial","毒瓶"],["fire_wand","火杖"],["frost_staff","霜杖"],["lightning_rod","电杖"],["dice_cup","骰盅"],["charge_cannon","蓄能炮"]];
+  const S=[["poison","中毒"],["burn","燃烧"],["freeze","冰冻"],["weak","虚弱"],["thorns","荆棘"],["vuln","易伤"],["shield","护盾"]];
+  const cell=(dir,id,nm,big,bone)=>`<div class="cell${big?' big':''}${bone?' bone':''}"><img src="${dir}/${id}.svg" alt="${id}"><div class="nm">${nm}</div><div class="id">${id}</div></div>`;
+  const $=id=>document.getElementById(id);
+  $("enemies").innerHTML=E.map(([i,n])=>cell("enemies",i,n,true)).join("");
+  $("equipment").innerHTML=Q.map(([i,n])=>cell("equipment",i,n,false,true)).join("");
+  $("status").innerHTML=S.map(([i,n])=>cell("status",i,n)).join("");
+  $("dice").innerHTML=[1,2,3,4,5,6].map(n=>`<div class="cell"><img src="brand/die-${n}.svg"><div class="nm">${n} 点</div></div>`).join("");
+</script>
+</body>
+</html>

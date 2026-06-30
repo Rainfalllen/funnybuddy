@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="clb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a8804c"/><stop offset="1" stop-color="#5e421f"/>
+    </linearGradient>
+  </defs>
+  <g transform="rotate(45 32 32)">
+    <!-- 棒头 -->
+    <path d="M32 6c8 0 13 6 13 14s-5 14-13 14-13-6-13-14S24 6 32 6z" fill="url(#clb)" stroke="#3a2810" stroke-width="2" stroke-linejoin="round"/>
+    <!-- 尖刺 -->
+    <g fill="#cfc4aa" stroke="#5a4a2c" stroke-width="1.2">
+      <path d="M32 6l3 -4 3 4z"/><path d="M45 20l4 -2 -1 4z"/><path d="M19 20l-4 -2 1 4z"/>
+    </g>
+    <!-- 木瘤 -->
+    <circle cx="28" cy="18" r="2" fill="#3a2810"/><circle cx="37" cy="24" r="2" fill="#3a2810"/>
+    <!-- 握柄 -->
+    <rect x="29" y="34" width="6" height="22" rx="3" fill="#5a3a22" stroke="#2c1c10" stroke-width="1.6"/>
+  </g>
+</svg>

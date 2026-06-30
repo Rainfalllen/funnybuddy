@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="tBg" cx="50%" cy="42%" r="60%">
+      <stop offset="0" stop-color="#16280f"/><stop offset="1" stop-color="#070d06"/>
+    </radialGradient>
+    <linearGradient id="tT" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b6e07a"/><stop offset="1" stop-color="#5f9a3a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#tBg)" stroke="#9ad14b" stroke-width="2" stroke-opacity=".5"/>
+  <!-- 带刺藤蔓环绕 -->
+  <path d="M16 44c4-14 12-20 16-28 4 8 12 14 16 28" fill="none" stroke="url(#tT)" stroke-width="4" stroke-linecap="round"/>
+  <g fill="url(#tT)" stroke="#34561c" stroke-width="1">
+    <path d="M22 30l-7-3 5 6z"/>
+    <path d="M28 20l-6-5 7 1z"/>
+    <path d="M32 14l0-8 5 6z"/>
+    <path d="M40 21l7-4-3 7z"/>
+    <path d="M46 33l8-2-5 6z"/>
+    <path d="M24 41l-8 1 6 4z"/>
+    <path d="M42 42l8 2-7 3z"/>
+  </g>
+</svg>

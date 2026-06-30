@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="grd" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dfe7ee"/><stop offset="1" stop-color="#8d9aa6"/>
+    </linearGradient>
+  </defs>
+  <!-- 盾 -->
+  <path d="M32 8l20 6v16c0 14-9 22-20 26-11-4-20-12-20-26V14z" fill="url(#grd)" stroke="#3a444e" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M32 8l20 6v16c0 14-9 22-20 26z" fill="#fff" fill-opacity=".18"/>
+  <!-- 十字纹章 -->
+  <path d="M32 16v30M18 30h28" stroke="#5a6670" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

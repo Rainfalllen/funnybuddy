@@ -158,6 +158,51 @@ body::before {
   padding: 3px 7px; border-radius: 7px; cursor: help; border: 1px solid #00000066;
   color: #1a130c; background: var(--c, #888); box-shadow: 0 0 9px color-mix(in srgb, var(--c, #888) 55%, transparent);
 }
+.status-chip .status-n, .intent-st .status-n { font-weight: 800; }
+
+/* ============================================================
+ * SVG 图标素材（icons/ 下的矢量资源，替换原 emoji 占位）
+ *   .ico        通用基类：img 形态以 contain 自适配容器、不可拖拽、不抢点击
+ *   .ico-emoji  兜底 emoji（无对应素材时）保持原文字渲染
+ *   场景修饰类负责具体尺寸，沿用原 emoji 占位的视觉体量
+ * ============================================================ */
+img.ico {
+  display: inline-block; object-fit: contain; vertical-align: middle;
+  user-select: none; -webkit-user-drag: none; pointer-events: none;
+  width: 1em; height: 1em;            /* 默认跟随字号；下面各场景给出显式尺寸 */
+}
+.ico-emoji { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+
+/* 敌人头像：替换 .enemy-portrait 的 56px emoji */
+.enemy-portrait img.ico-enemy { width: 64px; height: 64px; filter: drop-shadow(0 4px 10px #000) drop-shadow(0 0 14px #d64b3a55); }
+.enemy-portrait .ico-emoji.ico-enemy { font-size: 56px; }
+
+/* 装备图标：替换 .equip-icon 的 28px emoji（卡面浅底，给一点暗投影提清晰度） */
+.equip-icon img.ico-equip { width: 34px; height: 34px; filter: drop-shadow(0 1px 1px #0004); }
+.equip-icon .ico-emoji.ico-equip { font-size: 28px; }
+.owned-head .equip-icon img.ico-equip { width: 26px; height: 26px; }
+.equip-mini .equip-icon img.ico-equip { width: 30px; height: 30px; }
+
+/* 状态徽章：替换 chip 里 def.icon 文字，正方小图 */
+.status-chip img.ico-status, .intent-st img.ico-status { width: 16px; height: 16px; }
+
+/* 奖励 / 商店卡：替换 .reward-icon 的 40px emoji */
+.reward-icon img.ico-reward { width: 48px; height: 48px; filter: drop-shadow(0 2px 3px #0005); }
+.reward-icon .ico-emoji.ico-reward { font-size: 40px; }
+
+/* 地图节点的敌人小预览：随文字行内排布 */
+.node-enemy img.ico-mini { width: 18px; height: 18px; }
+
+/* 地图节点类型图标：替换 .node-icon 的 42px emoji，按层状态缩放 */
+.node-icon img.ico-node { width: 42px; height: 42px; filter: drop-shadow(0 3px 5px #000a); }
+.node-done .node-icon img.ico-node, .node-upcoming .node-icon img.ico-node { width: 30px; height: 30px; }
+.node-current .node-icon img.ico-node { width: 34px; height: 34px; }
+
+/* 章节横幅图标：随标题字号的行内小图 */
+.chapter-name img.ico-chapter { width: 20px; height: 20px; filter: drop-shadow(0 1px 2px #000); }
+
+/* 事件图标：替换 .event-icon 的 56px emoji */
+.event-icon img.ico-event { width: 60px; height: 60px; filter: drop-shadow(0 4px 10px #000) drop-shadow(0 0 16px #b08fe066); }
 
 /* ---------------- 面板标签 ---------------- */
 .row-label { color: var(--muted); font-size: 13px; font-weight: 700; margin: 10px 0 6px; display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: .3px; }

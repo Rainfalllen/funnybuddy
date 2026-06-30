@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="mnd" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a8f0b0"/><stop offset="1" stop-color="#3fa85a"/>
+    </linearGradient>
+  </defs>
+  <!-- 治疗光晕 -->
+  <circle cx="32" cy="34" r="20" fill="#7ed98a" fill-opacity=".2"/>
+  <!-- 心形 -->
+  <path d="M32 50C16 40 12 30 12 23a10 10 0 0 1 20-3 10 10 0 0 1 20 3c0 7-4 17-20 27z"
+        fill="url(#mnd)" stroke="#2c6e3a" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 十字 -->
+  <path d="M32 24v14M25 31h14" stroke="#eafff0" stroke-width="3.4" stroke-linecap="round"/>
+  <!-- 上升光点 -->
+  <g fill="#d6ffe0"><circle cx="48" cy="16" r="2"/><circle cx="16" cy="18" r="1.6"/></g>
+</svg>

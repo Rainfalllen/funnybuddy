@@ -1098,7 +1098,7 @@
         const path = this.map.path || [];
         const nodeInfo = (n) => ({
           id: n.id, type: n.type, meta: this.nodeMeta(n.type),
-          enemy: n.enemyId ? (() => { const e = findEnemy(n.enemyId); return { name: e.name, icon: e.icon, hp: e.maxHp }; })() : null,
+          enemy: n.enemyId ? (() => { const e = findEnemy(n.enemyId); return { id: e.id, name: e.name, icon: e.icon, hp: e.maxHp }; })() : null,
         });
         base.map = {
           rowIndex: this.map.rowIndex,

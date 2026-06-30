@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="wBg" cx="50%" cy="42%" r="60%">
+      <stop offset="0" stop-color="#241733"/><stop offset="1" stop-color="#0c0814"/>
+    </radialGradient>
+    <linearGradient id="wD" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d8c0f5"/><stop offset="1" stop-color="#9a6fd0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#wBg)" stroke="#b08fe0" stroke-width="2" stroke-opacity=".5"/>
+  <!-- 滴落水珠（虚弱/流失） -->
+  <path d="M32 12c6 10 13 16 13 25a13 13 0 0 1-26 0c0-9 7-15 13-25z" fill="url(#wD)" stroke="#6f4aa0" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M27 32c-1 4 1 8 5 9" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-opacity=".7"/>
+  <!-- 向下箭头：能力下降 -->
+  <g stroke="#3a2456" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <line x1="32" y1="30" x2="32" y2="42"/>
+    <path d="M27 37l5 5 5-5"/>
+  </g>
+  <circle cx="46" cy="46" r="2.5" fill="#d8c0f5" fill-opacity=".7"/>
+</svg>

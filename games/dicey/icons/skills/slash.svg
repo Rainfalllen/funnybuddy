@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="slh" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#9fb6c4"/>
+    </linearGradient>
+  </defs>
+  <!-- 斩击弧光 -->
+  <path d="M12 52C20 24 40 12 56 10c-10 6-22 18-30 38z" fill="url(#slh)" stroke="#4a5a64" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- 锋刃高光 -->
+  <path d="M16 48C24 26 40 16 52 14" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-opacity=".8"/>
+</svg>

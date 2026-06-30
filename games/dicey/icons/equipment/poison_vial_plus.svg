@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="pvpLiq" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c89af0"/><stop offset="1" stop-color="#5e2a8a"/>
+    </linearGradient>
+  </defs>
+  <!-- 剧毒气晕 -->
+  <ellipse cx="32" cy="20" rx="11" ry="7" fill="#9a5fd0" fill-opacity=".25"/>
+  <!-- 瓶身玻璃 -->
+  <path d="M26 14h12v10l8 18a8 8 0 0 1-7 12H25a8 8 0 0 1-7-12l8-18z" fill="#e0d0ef" fill-opacity=".35" stroke="#7a6e8e" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 剧毒液 -->
+  <path d="M21 34l-2 8a8 8 0 0 0 7 12h14a8 8 0 0 0 7-12l-2-8z" fill="url(#pvpLiq)" stroke="#3a1c56" stroke-width="1.5"/>
+  <!-- 骷髅标记 -->
+  <g fill="#eedcff" opacity=".9">
+    <circle cx="32" cy="44" r="4.5"/>
+    <rect x="29" y="47" width="6" height="3" rx="1"/>
+  </g>
+  <circle cx="30.3" cy="43.5" r="1.1" fill="#5e2a8a"/>
+  <circle cx="33.7" cy="43.5" r="1.1" fill="#5e2a8a"/>
+  <!-- 气泡 -->
+  <circle cx="26" cy="40" r="2" fill="#e6ccff" fill-opacity=".8"/>
+  <circle cx="40" cy="46" r="1.6" fill="#e6ccff" fill-opacity=".7"/>
+  <!-- 瓶塞 -->
+  <rect x="24" y="8" width="16" height="8" rx="2" fill="#5a3a6a" stroke="#341f40" stroke-width="1.5"/>
+  <path d="M30 20v6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-opacity=".5"/>
+</svg>

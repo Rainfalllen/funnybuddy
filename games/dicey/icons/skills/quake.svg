@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="qke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a8804c"/><stop offset="1" stop-color="#5e421f"/>
+    </linearGradient>
+  </defs>
+  <!-- 地面 -->
+  <path d="M6 38h52v10a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z" fill="url(#qke)" stroke="#3a2810" stroke-width="2"/>
+  <!-- 裂纹 -->
+  <path d="M30 38l-3 8 5 0 -4 6" fill="none" stroke="#1c1006" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M44 38l2 7-4 0" fill="none" stroke="#1c1006" stroke-width="2" stroke-linecap="round"/>
+  <!-- 飞石 -->
+  <g fill="#8a6a3c" stroke="#3a2810" stroke-width="1.2">
+    <path d="M22 24l5 3-3 4-5-2z"/><path d="M40 20l5 2-2 5-5-2z"/>
+  </g>
+  <!-- 震动线 -->
+  <g stroke="#c98a2f" stroke-width="2" stroke-linecap="round" opacity=".7">
+    <path d="M12 22l3-3"/><path d="M52 22l-3-3"/><path d="M32 14v-4"/>
+  </g>
+</svg>

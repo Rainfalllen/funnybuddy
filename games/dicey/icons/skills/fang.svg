@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="fng" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdfaf2"/><stop offset="1" stop-color="#cfc4aa"/>
+    </linearGradient>
+  </defs>
+  <!-- 上颚 -->
+  <path d="M10 14h44" stroke="#3a2c18" stroke-width="3" stroke-linecap="round"/>
+  <!-- 两颗尖牙 -->
+  <g fill="url(#fng)" stroke="#5a4a2c" stroke-width="1.6" stroke-linejoin="round">
+    <path d="M22 16l5 0 -2.5 30z"/>
+    <path d="M37 16l5 0 -2.5 30z"/>
+  </g>
+  <!-- 小牙 -->
+  <g fill="#e8ddc4" stroke="#7a6a48" stroke-width="1">
+    <path d="M30 16l3 0 -1.5 12z"/>
+  </g>
+</svg>

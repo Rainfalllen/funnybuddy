@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ndBl" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eef2f5"/><stop offset="1" stop-color="#9aa6ac"/>
+    </linearGradient>
+  </defs>
+  <!-- 交叉双剑 -->
+  <g stroke="#5a646a" stroke-width="1.5" stroke-linejoin="round">
+    <g transform="rotate(45 32 32)">
+      <path d="M32 8l3 3v26l-3 3-3-3V11z" fill="url(#ndBl)"/>
+      <rect x="25" y="40" width="14" height="3.5" rx="1.5" fill="#c9912f" stroke="#7a5a18"/>
+      <rect x="30" y="43" width="4" height="8" rx="1.5" fill="#5a3a22" stroke="#2c1c10"/>
+    </g>
+    <g transform="rotate(-45 32 32)">
+      <path d="M32 8l3 3v26l-3 3-3-3V11z" fill="url(#ndBl)"/>
+      <rect x="25" y="40" width="14" height="3.5" rx="1.5" fill="#c9912f" stroke="#7a5a18"/>
+      <rect x="30" y="43" width="4" height="8" rx="1.5" fill="#5a3a22" stroke="#2c1c10"/>
+    </g>
+  </g>
+</svg>

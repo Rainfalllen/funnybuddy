@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ch3C" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe89a"/><stop offset="1" stop-color="#c9912f"/>
+    </linearGradient>
+  </defs>
+  <!-- 王座靠背 -->
+  <path d="M16 54V20l8 6 8-12 8 12 8-6v34z" fill="#3a2c44" stroke="#1c0e2a" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 坐垫 -->
+  <rect x="20" y="40" width="24" height="14" rx="2" fill="#7a1c2a" stroke="#3a0e14" stroke-width="1.6"/>
+  <!-- 皇冠 -->
+  <path d="M22 16l4 5 6-7 6 7 4-5v8H22z" fill="url(#ch3C)" stroke="#7a5a18" stroke-width="1.6" stroke-linejoin="round"/>
+  <circle cx="32" cy="11" r="2.2" fill="#ff5a5a" stroke="#7a1c1c" stroke-width="1"/>
+  <!-- 宝石 -->
+  <circle cx="26" cy="20" r="1.6" fill="#58c8f0"/><circle cx="38" cy="20" r="1.6" fill="#7ed957"/>
+</svg>

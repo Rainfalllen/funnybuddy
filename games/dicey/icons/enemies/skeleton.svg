@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <defs>
+    <linearGradient id="skB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0ebdc"/><stop offset="1" stop-color="#c4baa0"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="48" cy="84" rx="20" ry="5" fill="#000" fill-opacity=".3"/>
+  <!-- 头骨 -->
+  <path d="M30 46c0-13 8-22 18-22s18 9 18 22c0 8-3 13-6 16v6a3 3 0 0 1-3 3H39a3 3 0 0 1-3-3v-6c-3-3-6-8-6-16z" fill="url(#skB)" stroke="#8a7e62" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- 眼窝 -->
+  <ellipse cx="40" cy="48" rx="6.5" ry="7.5" fill="#1c1810"/>
+  <ellipse cx="56" cy="48" rx="6.5" ry="7.5" fill="#1c1810"/>
+  <circle cx="40" cy="49" r="2.5" fill="#58c8f0"/>
+  <circle cx="56" cy="49" r="2.5" fill="#58c8f0"/>
+  <!-- 鼻腔 -->
+  <path d="M48 54l-3 7h6z" fill="#1c1810"/>
+  <!-- 牙缝 -->
+  <g stroke="#8a7e62" stroke-width="1.8">
+    <line x1="40" y1="64" x2="40" y2="71"/>
+    <line x1="44" y1="64" x2="44" y2="71"/>
+    <line x1="48" y1="64" x2="48" y2="71"/>
+    <line x1="52" y1="64" x2="52" y2="71"/>
+    <line x1="56" y1="64" x2="56" y2="71"/>
+    <line x1="36" y1="64" x2="60" y2="64"/>
+  </g>
+  <!-- 裂纹 -->
+  <path d="M52 28l-3 6 4 3" fill="none" stroke="#8a7e62" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

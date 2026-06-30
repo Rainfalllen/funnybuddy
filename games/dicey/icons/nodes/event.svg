@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="ndEv" cx="50%" cy="45%" r="60%">
+      <stop offset="0" stop-color="#d6c0f0"/><stop offset="1" stop-color="#6a4aa0"/>
+    </radialGradient>
+  </defs>
+  <!-- 符文圆牌 -->
+  <circle cx="32" cy="32" r="22" fill="url(#ndEv)" stroke="#3a285a" stroke-width="2.5"/>
+  <circle cx="32" cy="32" r="22" fill="none" stroke="#d6c0f0" stroke-width="1" stroke-opacity=".5" stroke-dasharray="3 4"/>
+  <!-- 问号 -->
+  <path d="M25 25a7 7 0 0 1 13 3c0 4-5 5-6 8v2" fill="none" stroke="#fbf7ea" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="32" cy="44" r="2.6" fill="#fbf7ea"/>
+</svg>

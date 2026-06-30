@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="evBf" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a646a"/><stop offset="1" stop-color="#2c3438"/>
+    </linearGradient>
+  </defs>
+  <!-- 炉火 -->
+  <path d="M20 18c2 4 5 6 5 10a5 5 0 0 1-10 0c0-3 3-7 5-10z" fill="#ff9d3c" stroke="#9a2c10" stroke-width="1.4" stroke-linejoin="round"/>
+  <!-- 铁砧 -->
+  <path d="M14 36h36c-2 5-7 6-11 6h-2v4h6v4H21v-4h6v-4h-2c-9 0-13-3-17-6z" fill="url(#evBf)" stroke="#11171a" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 砧角高光 -->
+  <path d="M14 36h36" stroke="#8d9aa6" stroke-width="1.2" stroke-opacity=".6"/>
+  <!-- 裂纹（破损） -->
+  <path d="M34 42l3 4-2 0" stroke="#11171a" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <!-- 火星 -->
+  <g fill="#ffe08a"><circle cx="40" cy="24" r="1.6"/><circle cx="46" cy="30" r="1.2"/></g>
+</svg>

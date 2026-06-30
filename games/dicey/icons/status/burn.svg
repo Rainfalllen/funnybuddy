@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="bBg" cx="50%" cy="46%" r="60%">
+      <stop offset="0" stop-color="#3a1608"/><stop offset="1" stop-color="#100604"/>
+    </radialGradient>
+    <linearGradient id="bF" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffd23c"/><stop offset=".5" stop-color="#ff7a2c"/><stop offset="1" stop-color="#e0381a"/>
+    </linearGradient>
+    <linearGradient id="bF2" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#fff0a0"/><stop offset="1" stop-color="#ffae46"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#bBg)" stroke="#ff7a45" stroke-width="2" stroke-opacity=".5"/>
+  <!-- 外焰 -->
+  <path d="M32 8c5 9 13 13 13 24 0 11-7 18-13 18s-13-7-13-18c0-7 4-11 6-16 1 4 3 6 5 7-1-6 0-11-3-16 0-1 2-2 2-3z" fill="url(#bF)" stroke="#a82810" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- 内焰 -->
+  <path d="M32 24c3 5 6 8 6 14 0 6-4 10-6 10s-6-4-6-10c0-4 3-7 6-14z" fill="url(#bF2)"/>
+  <ellipse cx="32" cy="44" rx="3" ry="5" fill="#fffbe0" fill-opacity=".85"/>
+</svg>

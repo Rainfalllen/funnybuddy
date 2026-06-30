@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <defs>
+    <radialGradient id="ogB" cx="45%" cy="35%" r="72%">
+      <stop offset="0" stop-color="#9a8f6a"/><stop offset="1" stop-color="#4a4228"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="48" cy="86" rx="28" ry="5" fill="#000" fill-opacity=".35"/>
+  <!-- 精英紫光环 -->
+  <circle cx="48" cy="48" r="32" fill="#b06bd81a" stroke="#c06bd8" stroke-width="1.5" stroke-opacity=".5"/>
+  <!-- 厚壮头部 -->
+  <path d="M22 54c0-16 11-28 26-28s26 12 26 28c0 14-11 22-26 22S22 68 22 54z" fill="url(#ogB)" stroke="#2e2814" stroke-width="3"/>
+  <!-- 獠牙 -->
+  <path d="M36 64l-3 12 7-6z" fill="#f0ebdc" stroke="#8a7e62" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M60 64l3 12-7-6z" fill="#f0ebdc" stroke="#8a7e62" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- 眉骨 -->
+  <path d="M30 48c6-5 14-5 18-1M66 48c-6-5-14-5-18-1" fill="none" stroke="#2e2814" stroke-width="3" stroke-linecap="round"/>
+  <!-- 眼 -->
+  <circle cx="40" cy="52" r="4" fill="#ff5a3c"/><circle cx="56" cy="52" r="4" fill="#ff5a3c"/>
+  <circle cx="40" cy="52" r="1.8" fill="#3a0c04"/><circle cx="56" cy="52" r="1.8" fill="#3a0c04"/>
+  <!-- 大嘴 -->
+  <path d="M36 64c5 5 19 5 24 0z" fill="#3a1c0c"/>
+  <!-- 鼻 -->
+  <ellipse cx="44" cy="58" rx="2" ry="1.5" fill="#2e2814"/><ellipse cx="52" cy="58" rx="2" ry="1.5" fill="#2e2814"/>
+</svg>

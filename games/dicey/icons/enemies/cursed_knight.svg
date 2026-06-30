@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <defs>
+    <linearGradient id="ckH" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a6470"/><stop offset="1" stop-color="#252b34"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="48" cy="86" rx="24" ry="5" fill="#000" fill-opacity=".35"/>
+  <circle cx="48" cy="48" r="32" fill="#b06bd81a" stroke="#c06bd8" stroke-width="1.5" stroke-opacity=".5"/>
+  <!-- 头盔 -->
+  <path d="M28 44c0-12 9-20 20-20s20 8 20 20v18c0 6-4 10-10 11l-2 4h-16l-2-4c-6-1-10-5-10-11z" fill="url(#ckH)" stroke="#14181e" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- 头盔脊 -->
+  <path d="M48 24v40" stroke="#7a8490" stroke-width="2" stroke-opacity=".6"/>
+  <!-- 面甲缝 -->
+  <rect x="32" y="46" width="32" height="8" rx="3" fill="#0c0e12"/>
+  <!-- 诅咒眼光 -->
+  <path d="M36 50l8-1 1 3-9 1z" fill="#9a4af0"/>
+  <path d="M60 50l-8-1-1 3 9 1z" fill="#9a4af0"/>
+  <circle cx="40" cy="50" r="1.8" fill="#e0c0ff"/><circle cx="56" cy="50" r="1.8" fill="#e0c0ff"/>
+  <!-- 通气孔 -->
+  <g fill="#0c0e12">
+    <rect x="38" y="58" width="2.5" height="6" rx="1"/>
+    <rect x="44" y="58" width="2.5" height="6" rx="1"/>
+    <rect x="50" y="58" width="2.5" height="6" rx="1"/>
+    <rect x="56" y="58" width="2.5" height="6" rx="1"/>
+  </g>
+  <!-- 盔顶羽饰 -->
+  <path d="M48 24c0-6 2-10 6-12-1 4 0 8 2 10z" fill="#7a2a8c" stroke="#5a1a6c" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

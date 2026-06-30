@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="evDa" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbf7ea"/><stop offset="1" stop-color="#ddd2b4"/>
+    </linearGradient>
+  </defs>
+  <!-- 祭坛 -->
+  <path d="M14 56l4-12h28l4 12z" fill="#6a5a44" stroke="#3a2c1c" stroke-width="2" stroke-linejoin="round"/>
+  <rect x="20" y="40" width="24" height="6" fill="#8a7a5c" stroke="#3a2c1c" stroke-width="1.6"/>
+  <!-- 光柱 -->
+  <path d="M26 40L24 8h16l-2 32z" fill="#ffe08a" fill-opacity=".25"/>
+  <!-- 悬浮骰子 -->
+  <g transform="rotate(-12 32 24)">
+    <rect x="22" y="14" width="20" height="20" rx="5" fill="url(#evDa)" stroke="#9c8a64" stroke-width="2"/>
+    <circle cx="27" cy="19" r="2.2" fill="#241a10"/><circle cx="37" cy="29" r="2.2" fill="#241a10"/>
+    <circle cx="32" cy="24" r="2.2" fill="#241a10"/>
+  </g>
+</svg>

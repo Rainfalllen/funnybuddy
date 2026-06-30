@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- 天平立柱 -->
+  <rect x="30" y="14" width="4" height="34" rx="1.5" fill="#9c8a64" stroke="#5a4414" stroke-width="1.4"/>
+  <!-- 横梁 -->
+  <rect x="12" y="14" width="40" height="4" rx="2" fill="#c9912f" stroke="#7a5a18" stroke-width="1.4"/>
+  <circle cx="32" cy="12" r="3" fill="#e0b84a" stroke="#7a5a18" stroke-width="1.4"/>
+  <!-- 吊绳 -->
+  <path d="M16 18l0 8M48 18l0 8" stroke="#5a4414" stroke-width="1.4"/>
+  <!-- 左盘（力量·红） -->
+  <path d="M8 26h16l-4 8a5 5 0 0 1-8 0z" fill="#c0392b" stroke="#7a1c14" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- 右盘（坚韧·蓝） -->
+  <path d="M40 26h16l-4 8a5 5 0 0 1-8 0z" fill="#2c7fb8" stroke="#1f5d86" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- 底座 -->
+  <path d="M22 48h20l4 8H18z" fill="#6a5a44" stroke="#3a2c1c" stroke-width="2" stroke-linejoin="round"/>
+</svg>

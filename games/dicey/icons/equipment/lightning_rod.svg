@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="lrBolt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff0a0"/><stop offset="1" stop-color="#ffae2c"/>
+    </linearGradient>
+  </defs>
+  <g transform="rotate(40 32 32)">
+    <!-- 杖身 -->
+    <rect x="29" y="26" width="6" height="34" rx="3" fill="#3a2e1a" stroke="#1c1408" stroke-width="1.5"/>
+    <!-- 双叉顶 -->
+    <path d="M26 26c-2-5-2-9 0-13M38 26c2-5 2-9 0-13" fill="none" stroke="#8a6a3a" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- 闪电核心 -->
+    <path d="M34 8l-8 12h6l-4 11 12-15h-6z" fill="url(#lrBolt)" stroke="#a8780c" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <circle cx="42" cy="20" r="13" fill="#ffd23c1a"/>
+  <!-- 电火花 -->
+  <path d="M50 14l3 1-2 2 3 1" fill="none" stroke="#ffe23c" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

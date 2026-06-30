@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="fwGem" cx="50%" cy="45%" r="55%">
+      <stop offset="0" stop-color="#ffe23c"/><stop offset=".6" stop-color="#ff7a2c"/><stop offset="1" stop-color="#c43a14"/>
+    </radialGradient>
+  </defs>
+  <g transform="rotate(40 32 32)">
+    <!-- 杖身 -->
+    <rect x="29" y="22" width="6" height="38" rx="3" fill="#4a2e1a" stroke="#241408" stroke-width="1.5"/>
+    <line x1="29" y1="34" x2="35" y2="34" stroke="#241408" stroke-width="1"/>
+    <line x1="29" y1="46" x2="35" y2="46" stroke="#241408" stroke-width="1"/>
+    <!-- 杖头爪 -->
+    <path d="M24 22c-2-4-1-8 2-10 0 3 2 4 4 5M40 22c2-4 1-8-2-10 0 3-2 4-4 5" fill="none" stroke="#7a5230" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- 火焰宝石 -->
+    <circle cx="32" cy="14" r="9" fill="url(#fwGem)" stroke="#8a2410" stroke-width="1.5"/>
+    <path d="M32 8c2 3 0 5 0 7-2-2-2-4 0-7z" fill="#fffbe0" fill-opacity=".8"/>
+  </g>
+  <!-- 火光 -->
+  <circle cx="42" cy="18" r="12" fill="#ff7a2c22"/>
+</svg>

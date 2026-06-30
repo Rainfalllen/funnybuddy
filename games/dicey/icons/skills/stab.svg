@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="stb" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#eef2f5"/><stop offset="1" stop-color="#9aa6ac"/>
+    </linearGradient>
+  </defs>
+  <!-- 突刺速度线 -->
+  <g stroke="#c98a2f" stroke-width="2" stroke-linecap="round" opacity=".7">
+    <path d="M8 24h12"/><path d="M6 32h14"/><path d="M8 40h12"/>
+  </g>
+  <!-- 矛尖 -->
+  <path d="M56 32L26 24l4 8-4 8z" fill="url(#stb)" stroke="#5a646a" stroke-width="1.6" stroke-linejoin="round"/>
+  <line x1="30" y1="32" x2="50" y2="32" stroke="#7a868c" stroke-width="1"/>
+</svg>

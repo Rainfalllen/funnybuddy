@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ndSh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c89a5a"/><stop offset="1" stop-color="#7a5424"/>
+    </linearGradient>
+  </defs>
+  <!-- 钱袋 -->
+  <path d="M22 22c-6 4-12 13-12 22a14 14 0 0 0 14 14h16a14 14 0 0 0 14-14c0-9-6-18-12-22z"
+        fill="url(#ndSh)" stroke="#3a2810" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 束口 -->
+  <path d="M22 22c2-3 6-4 10-4s8 1 10 4c-3 2-6 3-10 3s-7-1-10-3z" fill="#5e421f" stroke="#2c1c10" stroke-width="1.6"/>
+  <!-- 金币符号 -->
+  <circle cx="32" cy="42" r="9" fill="#e0b84a" stroke="#7a5a18" stroke-width="1.8"/>
+  <path d="M32 36v12M28.5 39h6a2.5 2.5 0 0 1 0 5h-5a2.5 2.5 0 0 0 0 5h6" fill="none" stroke="#7a5a18" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

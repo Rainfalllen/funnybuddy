@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="sBg" cx="50%" cy="42%" r="60%">
+      <stop offset="0" stop-color="#1e2629"/><stop offset="1" stop-color="#0a0d0e"/>
+    </radialGradient>
+    <linearGradient id="sM" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef3f5"/><stop offset=".5" stop-color="#c9d2d6"/><stop offset="1" stop-color="#8a969c"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#sBg)" stroke="#cfd8dc" stroke-width="2" stroke-opacity=".5"/>
+  <!-- 护盾 -->
+  <path d="M32 12l16 5v12c0 11-7 18-16 22-9-4-16-11-16-22V17z" fill="url(#sM)" stroke="#6a767c" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M32 12l16 5v12c0 11-7 18-16 22z" fill="#ffffff" fill-opacity=".18"/>
+  <!-- 高光勾边 -->
+  <path d="M32 20v28" stroke="#6a767c" stroke-width="1.5" stroke-opacity=".5"/>
+  <path d="M24 25l8 3 8-3" fill="none" stroke="#7a868c" stroke-width="2" stroke-linecap="round"/>
+</svg>

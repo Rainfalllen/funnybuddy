@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="smsh" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#fff2b0"/><stop offset="1" stop-color="#e08a2c"/>
+    </radialGradient>
+  </defs>
+  <!-- 冲击星爆 -->
+  <path d="M32 6l6 16 16-6-10 14 14 8-18 1 4 18-12-13-12 13 4-18-18-1 14-8L10 16l16 6z"
+        fill="url(#smsh)" stroke="#9a5a18" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 核心 -->
+  <circle cx="32" cy="33" r="6" fill="#fff7d6"/>
+</svg>

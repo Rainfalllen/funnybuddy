@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bdW" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4ecd8"/><stop offset="1" stop-color="#d8cba8"/>
+    </linearGradient>
+  </defs>
+  <!-- 缠绕的绷带卷 -->
+  <circle cx="32" cy="32" r="22" fill="url(#bdW)" stroke="#a89568" stroke-width="2.5"/>
+  <!-- 缠绕纹 -->
+  <g stroke="#c2b288" stroke-width="2.5" fill="none" stroke-linecap="round">
+    <path d="M14 28c8-6 28-6 36 0"/>
+    <path d="M12 36c10-5 30-5 40 0"/>
+    <path d="M16 44c8-4 24-4 32 0"/>
+  </g>
+  <!-- 红十字治疗标 -->
+  <g fill="#d64b3a">
+    <rect x="28" y="22" width="8" height="20" rx="2"/>
+    <rect x="22" y="28" width="20" height="8" rx="2"/>
+  </g>
+</svg>
