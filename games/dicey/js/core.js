@@ -35,9 +35,9 @@
     REWARD_CHOICES: 3,      // 战斗后三选一装备
     SHOP_EQUIP_COUNT: 3,    // 商店每次上架装备数
     REROLL_COST: 4,         // 商店刷新价
-    HEAL_NODE_AMOUNT: 10,   // 营火治疗量
+    HEAL_NODE_AMOUNT: 13,   // 营火治疗量
     SHOP_HEAL_COST: 5,      // 商店购买治疗价
-    SHOP_HEAL_AMOUNT: 8,
+    SHOP_HEAL_AMOUNT: 10,
     UPGRADE_COST: 6,        // 商店升级装备价
     SELL_RATIO: 0.5,        // 卖出回收比例
   };
@@ -1058,6 +1058,7 @@
     _publicUnit(u) {
       return {
         name: u.name, icon: u.icon, hp: u.hp, maxHp: u.maxHp,
+        boss: !!u.boss, elite: !!u.elite,
         block: u.block, status: Object.assign({}, u.status),
         dice: (u.dice || []).map((d) => ({ id: d.id, value: d.value, used: d.used })),
         equipment: (u.equipment || []).map((e) => this._publicEquip(e)),

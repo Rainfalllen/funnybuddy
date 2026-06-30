@@ -249,16 +249,26 @@ function autoMap(core) {
 function playOneGame(seed) {
   const core = new GameCore({ rng: makeRng(seed) });
   let ended = null;
+  // 平衡指标采集（文档 §32.2）
+  const stats = { battles: 0, bossBattles: 0, turnsTotal: 0, bossTurnsTotal: 0, dmgTaken: 0 };
 
   core.on("log", (e) => log("   " + e.text));
   core.on("battleStart", (d) => log(`   — 战斗开始：${d.enemy.icon} ${d.enemy.name}`));
   core.on("levelUp", (d) => log(`   ⬆️ Lv.${d.level}（${d.rewards.join("，")}）`));
+  core.on("damage", (d) => { if (d.side === "player") stats.dmgTaken += Math.max(0, d.amount - (d.absorbed || 0)); });
+  core.on("battleWin", () => {
+    const b = core.getState().battle;
+    if (!b) return;
+    stats.battles++;
+    stats.turnsTotal += b.turnNo;
+    if (b.enemy && b.enemy.boss) { stats.bossBattles++; stats.bossTurnsTotal += b.turnNo; }
+  });
   core.on("gameWin", () => { ended = "win"; });
   core.on("gameLose", () => { ended = "lose"; });
 
   core.newGame();
 
-  let guard = 200;
+  let guard = 400;
   while (!ended && guard-- > 0) {
     const phase = core.getState().phase;
     if (phase === "map") autoMap(core);
@@ -269,7 +279,11 @@ function playOneGame(seed) {
     else if (phase === "gameover") break;
     else break;
   }
-  return { ended: ended || "timeout", state: core.getState() };
+  const state = core.getState();
+  // 死亡时所处章节 / 是否倒在 Boss 层（地图最后一层）
+  const deathChapter = state.chapter || 1;
+  const onBossFloor = state.map ? (state.map.rowIndex >= state.map.totalRows - 1) : false;
+  return { ended: ended || "timeout", state, stats, deathChapter, onBossFloor };
 }
 
 // ============================================================
@@ -293,18 +307,33 @@ function main() {
     return;
   }
 
-  // 多局模拟：统计通关率（用于平衡观察）
+  // 多局模拟：统计通关率与平衡指标（文档 §32.2）
   let win = 0, lose = 0, other = 0;
+  const deathByChapter = {};        // 各章节死亡数
+  let bossFloorDeaths = 0;          // 倒在 Boss 层的次数
+  let battles = 0, turns = 0, bossBattles = 0, bossTurns = 0, dmgTaken = 0;
   const baseSeed = SEED_ARG != null ? SEED_ARG : 1;
   for (let i = 0; i < RUNS; i++) {
-    const { ended } = playOneGame(baseSeed + i * 9973);
-    if (ended === "win") win++;
-    else if (ended === "lose") lose++;
-    else other++;
+    const r = playOneGame(baseSeed + i * 9973);
+    if (r.ended === "win") win++;
+    else if (r.ended === "lose") {
+      lose++;
+      deathByChapter[r.deathChapter] = (deathByChapter[r.deathChapter] || 0) + 1;
+      if (r.onBossFloor) bossFloorDeaths++;
+    } else other++;
+    battles += r.stats.battles; turns += r.stats.turnsTotal;
+    bossBattles += r.stats.bossBattles; bossTurns += r.stats.bossTurnsTotal;
+    dmgTaken += r.stats.dmgTaken;
   }
+  const pct = (n) => ((n / RUNS) * 100).toFixed(1) + "%";
   console.log("\n--------------------------------------------------");
-  console.log(`模拟 ${RUNS} 局：通关 ${win}（${((win / RUNS) * 100).toFixed(1)}%）` +
-              `　失败 ${lose}　异常 ${other}`);
+  console.log(`模拟 ${RUNS} 局：通关 ${win}（${pct(win)}）　失败 ${lose}　异常 ${other}`);
+  console.log(`平均普通战斗回合：${battles ? (turns / battles).toFixed(1) : "-"}` +
+              `　平均 Boss 战回合：${bossBattles ? (bossTurns / bossBattles).toFixed(1) : "-"}`);
+  console.log(`平均每局受到伤害：${(dmgTaken / RUNS).toFixed(1)}　倒在 Boss 层占失败：` +
+              `${lose ? ((bossFloorDeaths / lose) * 100).toFixed(0) + "%" : "-"}`);
+  const chs = Object.keys(deathByChapter).sort();
+  if (chs.length) console.log("死亡章节分布：" + chs.map((c) => `第${c}章 ${deathByChapter[c]}`).join("　"));
   console.log("--------------------------------------------------");
 }
 

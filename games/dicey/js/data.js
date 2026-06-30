@@ -278,37 +278,37 @@
   //   ai：评分权重模型用的性格（aggressive / balanced / defensive）
   // ============================================================
   const ENEMY_POOL = [
-    { id: "slime", name: "史莱姆", icon: "🟢", maxHp: 12, diceCount: 2, ai: "aggressive",
+    { id: "slime", name: "史莱姆", icon: "🟢", maxHp: 15, diceCount: 2, ai: "aggressive",
       rewardGold: 4, rewardXp: 2, tags: ["basic"],
       equipment: [{ id: "claw", name: "撞击", icon: "💥", usesPerTurn: 1, condition: { type: "any" }, effects: [{ type: "damage", value: "dice" }] }] },
 
-    { id: "bat", name: "暗夜蝙蝠", icon: "🦇", maxHp: 10, diceCount: 2, ai: "aggressive",
+    { id: "bat", name: "暗夜蝙蝠", icon: "🦇", maxHp: 13, diceCount: 2, ai: "aggressive",
       rewardGold: 4, rewardXp: 2, tags: ["basic"],
       equipment: [{ id: "bite", name: "撕咬", icon: "🦷", usesPerTurn: 2, condition: { type: "max", value: 3 }, effects: [{ type: "damage", value: "dice" }] }] },
 
-    { id: "spider", name: "毒蛛", icon: "🕷️", maxHp: 14, diceCount: 2, ai: "balanced",
+    { id: "spider", name: "毒蛛", icon: "🕷️", maxHp: 17, diceCount: 2, ai: "balanced",
       rewardGold: 5, rewardXp: 2, tags: ["poison"],
       equipment: [
         { id: "fang", name: "尖牙", icon: "🦷", usesPerTurn: 1, condition: { type: "any" }, effects: [{ type: "damage", value: 2 }] },
         { id: "venom", name: "吐毒", icon: "🧪", usesPerTurn: 1, condition: { type: "even" }, effects: [{ type: "poison", value: 2 }] },
       ] },
 
-    { id: "goblin", name: "哥布林", icon: "👺", maxHp: 16, diceCount: 2, ai: "aggressive",
+    { id: "goblin", name: "哥布林", icon: "👺", maxHp: 19, diceCount: 2, ai: "aggressive",
       rewardGold: 5, rewardXp: 3, tags: ["basic"],
       equipment: [{ id: "stab", name: "突刺", icon: "🗡️", usesPerTurn: 1, condition: { type: "any" }, effects: [{ type: "damage", value: "dice+1" }] }] },
 
-    { id: "skeleton", name: "骷髅战士", icon: "💀", maxHp: 16, diceCount: 2, ai: "balanced",
+    { id: "skeleton", name: "骷髅战士", icon: "💀", maxHp: 19, diceCount: 2, ai: "balanced",
       rewardGold: 5, rewardXp: 3, tags: ["defense"],
       equipment: [
         { id: "slash", name: "挥砍", icon: "🗡️", usesPerTurn: 1, condition: { type: "odd" }, effects: [{ type: "damage", value: "dice+2" }] },
         { id: "boneguard", name: "骨盾", icon: "🛡️", usesPerTurn: 1, condition: { type: "even" }, effects: [{ type: "shield", value: "dice" }] },
       ] },
 
-    { id: "imp", name: "炎魔小鬼", icon: "👹", maxHp: 15, diceCount: 2, ai: "aggressive",
+    { id: "imp", name: "炎魔小鬼", icon: "👹", maxHp: 18, diceCount: 2, ai: "aggressive",
       rewardGold: 6, rewardXp: 3, tags: ["fire"],
       equipment: [{ id: "fireball", name: "火球", icon: "🔥", usesPerTurn: 1, condition: { type: "min", value: 3 }, effects: [{ type: "burn", value: "dice" }] }] },
 
-    { id: "frost_wisp", name: "霜灵", icon: "🧊", maxHp: 17, diceCount: 2, ai: "balanced",
+    { id: "frost_wisp", name: "霜灵", icon: "🧊", maxHp: 20, diceCount: 2, ai: "balanced",
       rewardGold: 6, rewardXp: 3, tags: ["ice"],
       equipment: [{ id: "chill", name: "寒霜", icon: "❄️", usesPerTurn: 1, condition: { type: "even" }, effects: [{ type: "freeze", value: 1 }, { type: "damage", value: 2 }] }] },
 
@@ -329,12 +329,12 @@
       ] },
 
     // —— Boss ——
-    { id: "dungeon_lord", name: "地牢领主", icon: "🐉", maxHp: 56, diceCount: 3, ai: "balanced", boss: true,
+    { id: "dungeon_lord", name: "地牢领主", icon: "🐉", maxHp: 44, diceCount: 3, ai: "balanced", boss: true,
       rewardGold: 20, rewardXp: 8, tags: ["boss"],
       equipment: [
-        { id: "doomstrike", name: "末日斩", icon: "⚔️", usesPerTurn: 1, condition: { type: "any" }, effects: [{ type: "damage", value: "dice+2" }] },
+        { id: "doomstrike", name: "末日斩", icon: "⚔️", usesPerTurn: 1, condition: { type: "any" }, effects: [{ type: "damage", value: "dice+1" }] },
         { id: "venomspit", name: "毒息", icon: "🧪", usesPerTurn: 1, condition: { type: "even" }, effects: [{ type: "poison", value: 3 }] },
-        { id: "quake", name: "震地", icon: "💥", usesPerTurn: 1, condition: { type: "exact", value: 6 }, effects: [{ type: "damage", value: 10 }] },
+        { id: "quake", name: "震地", icon: "💥", usesPerTurn: 1, condition: { type: "exact", value: 6 }, effects: [{ type: "damage", value: 8 }] },
         { id: "mend", name: "自愈", icon: "💚", usesPerTurn: 1, condition: { type: "max", value: 2 }, effects: [{ type: "heal", value: "dice+1" }] },
       ] },
   ];
@@ -411,20 +411,26 @@
     id: "warrior",
     name: "战士",
     icon: "🛡️",
-    maxHp: 26,
+    maxHp: 30,
     diceCount: 3,
     capacity: 5,               // 装备栏容量（格数）
     startEquipment: ["shortsword", "buckler", "handaxe"],
-    limitBreak: { name: "狂战重掷", desc: "立即重掷当前所有未使用的骰子", chargeMax: 8 },
+    limitBreak: { name: "狂战重掷", desc: "立即重掷当前所有未使用的骰子", chargeMax: 6 },
   };
 
   // ---------- 成长表（累计 XP 达到 need 即升级，奖励自动结算） ----------
+  // 一局需跨越多章节，敌人随章节持续增强，因此成长表延伸至 10 级，
+  // 让玩家在第 2、3 章仍能稳定变强，避免「停止成长却面对更强敌人」。
   const LEVELS = [
-    { level: 2, need: 3,  maxHp: 4 },
-    { level: 3, need: 7,  maxHp: 4, dice: 1 },
-    { level: 4, need: 12, maxHp: 5 },
-    { level: 5, need: 18, maxHp: 5, capacity: 1 },
-    { level: 6, need: 25, maxHp: 6, dice: 1 },
+    { level: 2,  need: 3,  maxHp: 4 },
+    { level: 3,  need: 7,  maxHp: 4, dice: 1 },
+    { level: 4,  need: 12, maxHp: 5 },
+    { level: 5,  need: 18, maxHp: 5, capacity: 1 },
+    { level: 6,  need: 25, maxHp: 6, dice: 1 },
+    { level: 7,  need: 33, maxHp: 6 },
+    { level: 8,  need: 42, maxHp: 6, dice: 1 },
+    { level: 9,  need: 52, maxHp: 7, capacity: 1 },
+    { level: 10, need: 64, maxHp: 8, dice: 1 },
   ];
 
   // ============================================================
@@ -434,9 +440,9 @@
   //   Boss 也换上更具压迫感的名号与形象。章节间会回复部分生命作为喘息。
   // ============================================================
   const CHAPTERS = [
-    { name: "腐朽地窖", icon: "🕯️", hpScale: 1.0, dmgScale: 1.0, bossName: "地牢守卫", bossIcon: "🗿" },
-    { name: "熔火回廊", icon: "🔥", hpScale: 1.4, dmgScale: 1.25, bossName: "炼狱魔将", bossIcon: "👹" },
-    { name: "王座深渊", icon: "👑", hpScale: 1.85, dmgScale: 1.5, bossName: "地牢领主", bossIcon: "🐉" },
+    { name: "腐朽地窖", icon: "🕯️", hpScale: 1.0,  dmgScale: 1.0,  bossName: "地牢守卫", bossIcon: "🗿" },
+    { name: "熔火回廊", icon: "🔥", hpScale: 1.3,  dmgScale: 1.18, bossName: "炼狱魔将", bossIcon: "👹" },
+    { name: "王座深渊", icon: "👑", hpScale: 1.65, dmgScale: 1.38, bossName: "地牢领主", bossIcon: "🐉" },
   ];
 
   // ============================================================
